@@ -3,7 +3,6 @@ import gym_stocks
 import random
 
 env = gym.make('Stocks-v0')
-print env
 print env.reset()
 
 for i in range(10):

@@ -23,6 +23,8 @@ class StockState:
         self.df = df
         self.index = 0
 
+        print("Imported tick data from {}".format(equity_path))
+
     def read_csv(self, path, sep):
         dtypes = {'Date': str, 'Time': str}
         df = pd.read_csv(path, sep=sep, header=0, names=['Date', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume'], dtype=dtypes)
@@ -68,21 +70,13 @@ class StocksEnv(gym.Env):
             if not os.path.isfile(path):
                 continue
 
-            try:
-                state = StockState(path)
-            except:
-                continue
+            self.states.append(path)
 
-            self.states.append(state)
-            print("Imported tick data from {}".format(path))
-
-        self.observation_space = spaces.Box(low=0, high=self.bound, shape=self.states[0].shape())
+        self.observation_space = spaces.Box(low=0, high=self.bound, shape=(5,1))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(dirname))
-
-        self._reset()
 
     def _step(self, action):
         assert self.action_space.contains(action)
@@ -115,7 +109,7 @@ class StocksEnv(gym.Env):
         return state, reward, done, None
 
     def _reset(self):
-        self.state = random.choice(self.states)
+        self.state = StockState(random.choice(self.states))
 
         self.money = 1000000
         self.equity = 0
