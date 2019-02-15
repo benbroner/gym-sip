@@ -1,16 +1,20 @@
-# gym-stocks
-OpenAI gym to play with stock market data
+# gym-sip
+Adapted from https://github.com/bioothod/gym-stocks
+Huge thanks to bioothod.
 
-1. Download stock data in comma-separated CSV format, following fields are required `'Date', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume'` into `stocks/` directory within this git sources, each separate equity datafile should have `.csv` extension
-2. Install gym-stocks
+OpenAI gym to play with basketball odds.
+
+1. Download stock data in comma-separated CSV format, following fields are required `'last_mod_lines', 'a_odds_ml', 'h_odds_ml' into `data/` directory within this git sources, each separate datafile should have `.csv` extension
+
+2. Install gym-sip
 ```
 pip install --user -e .
 ```
 3. Run example
 ```
 import gym
-import gym_stocks
-env = gym.make('Stocks-v0')
+import gym_sip
+env = gym.make('Sips-v0')
 print env.reset()
 ```
 
