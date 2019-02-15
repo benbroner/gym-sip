@@ -14,7 +14,7 @@ pip install --user -e .
 ```
 import gym
 import gym_sip
-env = gym.make('Sips-v0')
+env = gym.make('Sip-v0')
 print env.reset()
 ```
 
