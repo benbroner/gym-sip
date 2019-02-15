@@ -1,8 +1,8 @@
 import gym
-import gym_stocks
+import gym_sip
 import random
 
-env = gym.make('Better-v0')
+env = gym.make('Sipper-v0')
 env.reset()
 
 for i in range(10):
