@@ -29,3 +29,8 @@ If you do not have enough money to perform BUY action or you do not have equity 
 
 Portfolio cost equals to the sum of the money and equity times the closing price.
 Reward is a difference between portfolio cost at the current and previous steps, reward calculation is being performed after money and equity have been updated (with the appropriate comission).
+
+
+
+Next steps:
+incorporate pytorch neural ordinary differential equations 

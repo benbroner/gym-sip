@@ -1,1 +1,1 @@
-from gym_stocks.envs.stocks_env import SipEnv
+from gym_sip.envs.sip_env import SipEnv

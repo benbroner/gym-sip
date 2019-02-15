@@ -1,17 +1,13 @@
 import gym
-from gym import spaces
-from sklearn.preprocessing import RobustScaler
-import sippy_lines as sl
 import random
 import pandas as pd
 import numpy as np
+from gym import spaces
+from sklearn.preprocessing import RobustScaler
 
 ACTION_SKIP = 0
 ACTION_BUY_A = 1
 ACTION_BUY_H = 2
-# ACTION_UPDATE_LIVE = 3
-# ACTION_UPDATE_PRE = 4
-# ACTION_GAMESCORE = 5#
 
 
 class SippyState:
@@ -20,12 +16,19 @@ class SippyState:
         self.df = None
         self.read_csv()
         self.index = 0
+        self.headers = []
 
         print("Imported data from {}".format(self.fn))
 
     def read_csv(self):
-        df = pd.read_csv(self.fn)
-        self.df = df.dropna()
+        self.headers = ['a_team', 'h_team', 'game_id', 'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win',
+                        'last_mod_to_start', 'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
+        raw = pd.read_csv(self.fn, usecols=self.headers, dtype={'a_team': 'category', 'h_team': 'category',
+                                                                'league': 'category'})
+        raw.dropna()
+        raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
+        raw = raw.drop(['sport', 'league', 'game_id', 'last_mod_score'], axis=1)
+        self.df = raw.copy()
 
     def fit_data(self):
         transformer = RobustScaler().fit(self.df)
@@ -48,7 +51,7 @@ class SippyState:
         return self.df.shape
 
     def current_price(self):
-        return self.df.ix[self.index, 'Close']
+        return self.df.ix[self.index, 'a_odds_ml']
 
 
 class SipEnv(gym.Env):
@@ -64,7 +67,7 @@ class SipEnv(gym.Env):
         self.state = None
         self.states.append(self.file_name)
 
-        self.observation_space = spaces.Box(low=-, high=self.bound, shape=(5,1))
+        self.observation_space = spaces.Box(low=-1, high=self.bound, shape=(5, 1))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:

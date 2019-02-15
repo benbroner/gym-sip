@@ -2,7 +2,7 @@ import gym
 import gym_sip
 import random
 
-env = gym.make('Sipper-v0')
+env = gym.make('Sip-v0')
 env.reset()
 
 for i in range(10):
