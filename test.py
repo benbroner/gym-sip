@@ -1,9 +1,9 @@
 import gym
-import gym_sip
 import random
 
+import gym_sip
 env = gym.make('Sip-v0')
-env.reset()
+print(env.reset())
 
-for i in range(10):
+for i in range(1000):
     env.step(random.randrange(0, env.action_space.n))

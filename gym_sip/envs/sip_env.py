@@ -14,20 +14,39 @@ class SippyState:
     def __init__(self, file_name):
         self.fn = file_name + '.csv'
         self.df = None
+        self.headers = [# 'a_team', 'h_team', 'league',
+                        'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
+                        'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
+        self.dtypes = {
+                    # 'a_team': 'category',
+                    # 'h_team': 'category',
+                    # 'league': 'category',
+                    'a_pts': 'Int32',
+                    'h_pts': 'Int32',
+                    'secs': 'Int32',
+                    'status': 'Int32',
+                    'a_win': 'Int32',
+                    'h_win': 'Int32',
+                    'num_markets': 'Int32',
+                    'a_odds_ml': 'Int32',
+                    'h_odds_ml': 'Int32',
+                    'a_hcap_tot': 'Int32',
+                    'h_hcap_tot': 'Int32'
+        }
         self.read_csv()
+        self.shape()
+        # self.df.astype(np.float)
+        # self.df.drop(['game_id'], axis=1)
+        # self.fit_data()
         self.index = 0
-        self.headers = []
 
         print("Imported data from {}".format(self.fn))
 
     def read_csv(self):
-        self.headers = ['a_team', 'h_team', 'game_id', 'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win',
-                        'last_mod_to_start', 'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
-        raw = pd.read_csv(self.fn, usecols=self.headers, dtype={'a_team': 'category', 'h_team': 'category',
-                                                                'league': 'category'})
+        path = 'data/' + self.fn
+        raw = pd.read_csv(path, usecols=self.headers, dtype='Float64')
         raw.dropna()
-        raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
-        raw = raw.drop(['sport', 'league', 'game_id', 'last_mod_score'], axis=1)
+        # raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
         self.df = raw.copy()
 
     def fit_data(self):
@@ -41,7 +60,7 @@ class SippyState:
         if self.index >= len(self.df) - 1:
             return None, True
 
-        values = self.df.iloc[self.index, 5:30].values
+        values = self.df.iloc[self.index, 0:11]
 
         self.index += 1
 
@@ -61,19 +80,20 @@ class SipEnv(gym.Env):
         self.file_name = file_name
         self.num = 1
         self.money = 3500
+        self.bound = 16
         self.eq_a = 0
         self.eq_h = 0
         self.states = []
         self.state = None
         self.states.append(self.file_name)
 
-        self.observation_space = spaces.Box(low=-1, high=self.bound, shape=(5, 1))
+        self.observation_space = spaces.Box(low=-1, high=1000, shape=(12, ))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(self.file_name))
 
-    def _step(self, action):
+    def step(self, action):
         assert self.action_space.contains(action)
 
         portfolio = self.money * self.equity * self.state.current_price()
@@ -102,7 +122,7 @@ class SipEnv(gym.Env):
 
         return state, reward, done, None
 
-    def _reset(self):
+    def reset(self):
         self.state = SippyState(random.choice(self.states))
 
         self.money = 3500
