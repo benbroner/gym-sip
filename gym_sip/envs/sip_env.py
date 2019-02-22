@@ -1,6 +1,7 @@
 import gym
 import random
 import pandas as pd
+from gym import spaces
 from sklearn.preprocessing import RobustScaler
 
 ACTION_SKIP = 0
@@ -10,8 +11,9 @@ ACTION_BUY_H = 2
 
 class SippyState:
     def __init__(self, game):
-        self.game = game  # df for game
         print(game)
+        self.game = game  # df for game
+
         self.id = self.game.iloc[0, 2]  # first row, second column
         self.index = 0
 
@@ -108,7 +110,7 @@ class SipEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
-
+        reward = 0
         portfolio = self.money + (self.eq_a * self.a_odds) + (self.eq_h * self.h_odds)
 
         prev_portfolio = self.money + self.eq_a + self.eq_h
@@ -119,7 +121,8 @@ class SipEnv(gym.Env):
 
         if not done:
             self.get_odds()
-
+        if done:
+            reward -= self.bet_amt
         reward = self.money + self.eq_a + self.eq_h - prev_portfolio
 
         return state, reward, done, None
