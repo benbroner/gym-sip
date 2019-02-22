@@ -13,7 +13,6 @@ ACTION_BUY_H = 2
 class SippyState:
     def __init__(self, file_name):
         self.fn = file_name + '.csv'
-        print(file_name)
         self.df = None
         self.headers = ['a_team', 'h_team', 'league', 'game_id',
                         'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
@@ -22,7 +21,7 @@ class SippyState:
                     'a_team': 'category',
                     'h_team': 'category',
                     'league': 'category',
-                    'game_id': 'category',
+                    'game_id': 'Int32',
                     'a_pts': 'Int32',
                     'h_pts': 'Int32',
                     'secs': 'Int32',
@@ -37,9 +36,8 @@ class SippyState:
         }
         self.read_csv()
         self.shape()
-        self.shape()
-        self.shape()
-        # self.chunk_df()
+
+        self.chunk_df()
         # self.fit_data()
         self.index = 0
 
@@ -73,11 +71,9 @@ class SippyState:
         if self.index >= len(self.df) - 1:
             return None, True
 
-        values = self.df.iloc[self.index, 0:55]
+        values = self.df.iloc[self.index, 0:]
 
-        cat_vals = values[12:55].to_numpy().nonzero()
-
-        # print(cat_vals)
+        cat_vals = values[12:].to_numpy().nonzero()
 
         self.index += 1
 
@@ -107,7 +103,7 @@ class SipEnv(gym.Env):
         self.state = None
         self.states.append(self.file_name)
 
-        self.observation_space = spaces.Box(low=-1, high=1000, shape=(12, ))
+        self.observation_space = spaces.Box(low=--100000000, high=100000000, shape=(12, ))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
@@ -124,7 +120,7 @@ class SipEnv(gym.Env):
         a_eq = self.eq_calc(a_odds)
         h_eq = self.eq_calc(h_odds)
 
-        prev_portfolio = self.money
+        prev_portfolio = self.money + self.eq_a + self.eq_h
 
         if action == ACTION_BUY_A:
             if self.money >= 100 * self.num and a_odds != 0:
@@ -151,6 +147,8 @@ class SipEnv(gym.Env):
         return state, reward, done, None
 
     def eq_calc(self, odd):
+        if odd == 0:
+            return 0
         if odd >= 100:
             return odd/100.
         elif odd < 100:
@@ -159,7 +157,7 @@ class SipEnv(gym.Env):
     def reset(self):
         self.state = SippyState(random.choice(self.states))
 
-        self.money = 10000
+        self.money = 0
         self.eq_a = 0
         self.eq_h = 0
 
