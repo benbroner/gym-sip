@@ -13,6 +13,7 @@ ACTION_BUY_H = 2
 class SippyState:
     def __init__(self, game):
         self.game = game  # df for game
+        print(game)
         self.id = self.game.iloc[0, 2]  # first row, second column
         self.index = 0
 
@@ -96,7 +97,7 @@ class SipEnv(gym.Env):
 
         self.state = None
 
-        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(12, ))
+        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
@@ -104,6 +105,7 @@ class SipEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
+        price = self.a_odds + self.h_odds
 
         portfolio = self.money + (self.eq_a * self.state.a_odds())
         prev_portfolio = self.money + self.eq_a + self.eq_h
@@ -112,12 +114,12 @@ class SipEnv(gym.Env):
 
         state, done = self.state.next()
 
-        new_price = self.a_odds + self.h_odds
+        new_price = price
         if not done:
+            self.get_odds()
             new_price = self.a_odds + self.h_odds
 
-        new_equity_price = new_price * self.eq_a
-        reward = (self.money + self.eq_a + self.eq_h) - prev_portfolio
+        reward = new_price - price
 
         return state, reward, done, None
 
@@ -132,13 +134,17 @@ class SipEnv(gym.Env):
         self.ids = self.df['game_id'].unique().tolist()
         self.states = {key: val for key, val in self.df.groupby('game_id')}
 
+    def get_odds(self):
+        self.a_odds = self.state.a_odds()
+        self.h_odds = self.state.h_odds()
+
     def actions(self, action):
         if action == ACTION_BUY_A:
             if self.a_odds != 0:
                 self.money -= self.bet_amt
                 self.eq_a += self.adj_a_odds
             else:
-                print('forced skip')
+                print(str(self.a_odds) + ' a')
         if action == ACTION_BUY_H:
             if self.h_odds != 0:
                 self.money -= self.bet_amt
