@@ -19,33 +19,33 @@ class SippyState:
         print("Imported data from {}".format(self.id))
 
     def fit_data(self):
-        transformer = RobustScaler().fit(self.df)
-        transformer.transform(self.df)
+        transformer = RobustScaler().fit(self.game)
+        transformer.transform(self.game)
 
     def reset(self):
         self.index = 0
 
     def next(self):
-        if self.index >= len(self.df) - 1:
+        if self.index >= len(self.game) - 1:
             return None, True
 
-        values = self.df.iloc[self.index, 0:]
-        print(values)
+        values = self.game.iloc[self.index, 0:]
+        # print(values)
         self.index += 1
 
         return values, False
 
     def shape(self):
-        return self.df.shape
+        return self.game.shape
 
     def a_odds(self):
-        return self.df.ix[self.index, 'a_odds_ml']
+        return int(self.game.iloc[self.index, 9])
 
     def h_odds(self):
-        return self.df.ix[self.index, 'h_odds_ml']
+        return int(self.game.iloc[self.index, 10])
 
     def num_games(self):
-        return len(self.df['game_id'].unique())
+        return len(self.game['game_id'].unique())
 
 
 class SipEnv(gym.Env):
@@ -78,7 +78,7 @@ class SipEnv(gym.Env):
                     'h_hcap_tot': 'Int32'
         }
         self.read_csv()
-        self.states = []
+        self.states = {}
         self.ids = []
         self.chunk_df()
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
@@ -107,11 +107,14 @@ class SipEnv(gym.Env):
 
         portfolio = self.money + (self.eq_a * self.state.a_odds())
         prev_portfolio = self.money + self.eq_a + self.eq_h
+
         self.actions(action)
+
         state, done = self.state.next()
-        new_price = self.a_odds() + self.h_odds
+
+        new_price = self.a_odds + self.h_odds
         if not done:
-            new_price = self.a_odds() + self.h_odds
+            new_price = self.a_odds + self.h_odds
 
         new_equity_price = new_price * self.eq_a
         reward = (self.money + self.eq_a + self.eq_h) - prev_portfolio
@@ -126,7 +129,7 @@ class SipEnv(gym.Env):
         self.df = raw.copy()
 
     def chunk_df(self):
-        self.ids = self.df['game_id'].unique()
+        self.ids = self.df['game_id'].unique().tolist()
         self.states = {key: val for key, val in self.df.groupby('game_id')}
 
     def actions(self, action):
@@ -144,7 +147,8 @@ class SipEnv(gym.Env):
                 print('forced skip')
 
     def reset(self):
-        self.state = SippyState(random.choice(self.states))
+        cur_id = random.choice(self.ids)
+        self.state = SippyState(self.states[cur_id])
 
         self.money = 0
         self.eq_a = 0
