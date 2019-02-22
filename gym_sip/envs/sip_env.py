@@ -105,9 +105,9 @@ class SipEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
-        price = self.a_odds + self.h_odds
 
-        portfolio = self.money + (self.eq_a * self.state.a_odds())
+        portfolio = self.money + (self.eq_a * self.a_odds) + (self.eq_h * self.h_odds)
+        price = self.a_odds + self.h_odds
         prev_portfolio = self.money + self.eq_a + self.eq_h
 
         self.actions(action)
@@ -119,7 +119,7 @@ class SipEnv(gym.Env):
             self.get_odds()
             new_price = self.a_odds + self.h_odds
 
-        reward = new_price - price
+        reward = self.money + self.eq_a + self.eq_h - prev_portfolio
 
         return state, reward, done, None
 
@@ -137,6 +137,8 @@ class SipEnv(gym.Env):
     def get_odds(self):
         self.a_odds = self.state.a_odds()
         self.h_odds = self.state.h_odds()
+        self.adj_a_odds = eq_calc(self.a_odds)
+        self.adj_h_odds = eq_calc(self.h_odds)
 
     def actions(self, action):
         if action == ACTION_BUY_A:
