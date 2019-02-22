@@ -11,58 +11,13 @@ ACTION_BUY_H = 2
 
 
 class SippyState:
-    def __init__(self, file_name):
-        self.fn = 'data/' + file_name + '.csv'
-        self.df = None
-        self.headers = ['a_team', 'h_team', 'league', 'game_id',
-                        'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
-                        'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
-        self.dtypes = {
-                    'a_team': 'category',
-                    'h_team': 'category',
-                    'league': 'category',
-                    'game_id': 'Int64',
-                    'a_pts': 'Int16',
-                    'h_pts': 'Int16',
-                    'secs': 'Int16',
-                    'status': 'Int16',
-                    'a_win': 'Int16',
-                    'h_win': 'Int16',
-                    'last_mod_to_start': 'Float64',
-                    'num_markets': 'Int16',
-                    'a_odds_ml': 'Int32',
-                    'h_odds_ml': 'Int32',
-                    'a_hcap_tot': 'Int32',
-                    'h_hcap_tot': 'Int32'
-        }
-        self.read_csv()
-        self.shape()
+    def __init__(self, game):
 
-        self.chunk_df()
-        # self.fit_data()
+        self.game = game  # df for game
+
         self.index = 0
 
         print("Imported data from {}".format(self.fn))
-
-    def read_csv(self):
-        path = self.fn
-        raw = pd.read_csv(path, usecols=self.headers)
-        l = raw.columns.values.tolist()
-        print(l)
-        raw.dropna()
-        raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
-        b = raw.columns.values.tolist()
-        print(b[34])
-        # print(raw)
-        # raw = .drop(['a_team', 'h_team', 'league'], axis=1)
-        self.df = raw.copy()
-
-    def chunk_df(self):
-        # self.df.sort_values(by='game_id', axis=1, inplace=True)
-        # self.df.set_index(keys=['game_id'], drop=False, inplace=True)
-        games = self.df['game_id'].unique
-
-        # print(games)
 
     def fit_data(self):
         transformer = RobustScaler().fit(self.df)
@@ -92,22 +47,61 @@ class SippyState:
     def h_odds(self):
         return self.df.ix[self.index, 'h_odds_ml']
 
+    def num_games(self):
+        return len(self.df['game_id'].unique())
+
 
 class SipEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, file_name):
-        self.file_name = file_name
-        self.num = 1
+
+        self.fn = file_name
+
+        self.fn = 'data/' + file_name + '.csv'
+        self.df = None
+        self.headers = ['a_team', 'h_team', 'league', 'game_id',
+                        'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
+                        'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
+        self.dtypes = {
+                    'a_team': 'category',
+                    'h_team': 'category',
+                    'league': 'category',
+                    'game_id': 'Int64',
+                    'a_pts': 'Int16',
+                    'h_pts': 'Int16',
+                    'secs': 'Int16',
+                    'status': 'Int16',
+                    'a_win': 'Int16',
+                    'h_win': 'Int16',
+                    'last_mod_to_start': 'Float64',
+                    'num_markets': 'Int16',
+                    'a_odds_ml': 'Int32',
+                    'h_odds_ml': 'Int32',
+                    'a_hcap_tot': 'Int32',
+                    'h_hcap_tot': 'Int32'
+        }
+
+        self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
+
+        self.bet_amt = 100
         self.money = 100000
         self.bound = 16
+
         self.eq_a = 0
         self.eq_h = 0
-        self.states = []
-        self.state = None
-        # self.states.append(self.file_name)
 
-        self.observation_space = spaces.Box(low=--100000000, high=100000000, shape=(12, ))
+        self.a_odds = self.state.a_odds()
+        self.h_odds = self.state.h_odds()
+
+        self.adj_a_odds = eq_calc(self.a_odds)
+        self.adj_h_odds = eq_calc(self.h_odds)
+
+        self.states = []  # list of dataframes with unique
+        self.state = None
+        # self.states.append(self.fn)
+
+        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(12, ))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
@@ -118,45 +112,48 @@ class SipEnv(gym.Env):
 
         portfolio = self.money + (self.eq_a * self.state.a_odds())
 
-        a_odds = self.state.a_odds()
-        h_odds = self.state.h_odds()
-
-        a_eq = self.eq_calc(a_odds)
-        h_eq = self.eq_calc(h_odds)
-
         prev_portfolio = self.money + self.eq_a + self.eq_h
 
-        if action == ACTION_BUY_A:
-            if self.money >= 100 * self.num and a_odds != 0:
-                self.money -= 100 * self.num
-                self.eq_a += self.num * a_eq
-            else:
-                print('forced skip')
-        if action == ACTION_BUY_H:
-            if self.money >= 100 * self.num and h_odds != 0:
-                self.money -= 100 * self.num
-                self.eq_h += self.num * h_eq
-            else:
-                print('forced skip')
+        self.actions(action)
 
         state, done = self.state.next()
-        # print(act_name(action))
-        new_price = a_odds - h_odds
+
+        new_price = self.a_odds() + self.h_odds
+
         if not done:
-            new_price = self.state.a_odds()
+            new_price = self.a_odds() + self.h_odds
 
         new_equity_price = new_price * self.eq_a
         reward = (self.money + self.eq_a + self.eq_h) - prev_portfolio
-        # print('reward: ' + str(reward))
+
         return state, reward, done, None
 
-    def eq_calc(self, odd):
-        if odd == 0:
-            return 0
-        if odd >= 100:
-            return odd/100.
-        elif odd < 100:
-            return abs(100/odd)
+    def read_csv(self):
+
+        raw = pd.read_csv(self.fn, usecols=self.headers)
+        raw = raw.dropna()
+        raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
+
+        self.df = raw.copy()
+
+    def chunk_df(self):
+        ids = self.df['game_id'].unique()
+        id_dict = {key: val for key, val in self.df.groupby('game_id')}
+        return id_dict, ids
+
+    def actions(self, action):
+        if action == ACTION_BUY_A:
+            if self.money >= self.bet_amt * self.num and self.a_odds != 0:
+                self.money -= self.bet_amt * self.num
+                self.eq_a += a_eq
+            else:
+                print('forced skip')
+        if action == ACTION_BUY_H:
+            if self.money >= self.bet_amt and self.h_odds != 0:
+                self.money -= self.bet_amt
+                self.eq_h += h_eq
+            else:
+                print('forced skip')
 
     def reset(self):
         self.state = SippyState(random.choice(self.states))
@@ -179,3 +176,12 @@ def act_name(act):
         return 'BUY AWAY'
     elif act == 2:
         return 'BUY HOME'
+
+
+def eq_calc(odd):
+    if odd == 0:
+        return 0
+    if odd >= 100:
+        return odd/100.
+    elif odd < 100:
+        return abs(100/odd)
