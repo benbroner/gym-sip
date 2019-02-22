@@ -12,12 +12,11 @@ ACTION_BUY_H = 2
 
 class SippyState:
     def __init__(self, game):
-
         self.game = game  # df for game
-
+        self.id = self.game.iloc[0, 2]  # first row, second column
         self.index = 0
 
-        print("Imported data from {}".format(self.fn))
+        print("Imported data from {}".format(self.id))
 
     def fit_data(self):
         transformer = RobustScaler().fit(self.df)
@@ -31,9 +30,7 @@ class SippyState:
             return None, True
 
         values = self.df.iloc[self.index, 0:]
-
-        cat_vals = values[12:].to_numpy().nonzero()
-
+        print(values)
         self.index += 1
 
         return values, False
@@ -56,10 +53,9 @@ class SipEnv(gym.Env):
 
     def __init__(self, file_name):
 
-        self.fn = file_name
-
         self.fn = 'data/' + file_name + '.csv'
         self.df = None
+
         self.headers = ['a_team', 'h_team', 'league', 'game_id',
                         'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
                         'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
@@ -81,45 +77,39 @@ class SipEnv(gym.Env):
                     'a_hcap_tot': 'Int32',
                     'h_hcap_tot': 'Int32'
         }
-
+        self.read_csv()
+        self.states = []
+        self.ids = []
+        self.chunk_df()
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
 
         self.bet_amt = 100
-        self.money = 100000
+        self.money = 0  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
         self.bound = 16
 
         self.eq_a = 0
         self.eq_h = 0
+        self.a_odds = 0
+        self.h_odds = 0
+        self.adj_a_odds = 0
+        self.adj_h_odds = 0
 
-        self.a_odds = self.state.a_odds()
-        self.h_odds = self.state.h_odds()
-
-        self.adj_a_odds = eq_calc(self.a_odds)
-        self.adj_h_odds = eq_calc(self.h_odds)
-
-        self.states = []  # list of dataframes with unique
         self.state = None
-        # self.states.append(self.fn)
 
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(12, ))
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
-            raise NameError('Invalid empty directory {}'.format(self.file_name))
+            raise NameError('Invalid empty directory {}'.format(self.fn))
 
     def step(self, action):
         assert self.action_space.contains(action)
 
         portfolio = self.money + (self.eq_a * self.state.a_odds())
-
         prev_portfolio = self.money + self.eq_a + self.eq_h
-
         self.actions(action)
-
         state, done = self.state.next()
-
         new_price = self.a_odds() + self.h_odds
-
         if not done:
             new_price = self.a_odds() + self.h_odds
 
@@ -129,7 +119,6 @@ class SipEnv(gym.Env):
         return state, reward, done, None
 
     def read_csv(self):
-
         raw = pd.read_csv(self.fn, usecols=self.headers)
         raw = raw.dropna()
         raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
@@ -137,21 +126,20 @@ class SipEnv(gym.Env):
         self.df = raw.copy()
 
     def chunk_df(self):
-        ids = self.df['game_id'].unique()
-        id_dict = {key: val for key, val in self.df.groupby('game_id')}
-        return id_dict, ids
+        self.ids = self.df['game_id'].unique()
+        self.states = {key: val for key, val in self.df.groupby('game_id')}
 
     def actions(self, action):
         if action == ACTION_BUY_A:
-            if self.money >= self.bet_amt * self.num and self.a_odds != 0:
-                self.money -= self.bet_amt * self.num
-                self.eq_a += a_eq
+            if self.a_odds != 0:
+                self.money -= self.bet_amt
+                self.eq_a += self.adj_a_odds
             else:
                 print('forced skip')
         if action == ACTION_BUY_H:
-            if self.money >= self.bet_amt and self.h_odds != 0:
+            if self.h_odds != 0:
                 self.money -= self.bet_amt
-                self.eq_h += h_eq
+                self.eq_h += self.adj_h_odds
             else:
                 print('forced skip')
 
