@@ -12,7 +12,7 @@ ACTION_BUY_H = 2
 
 class SippyState:
     def __init__(self, file_name):
-        self.fn = file_name + '.csv'
+        self.fn = 'data/' + file_name + '.csv'
         self.df = None
         self.headers = ['a_team', 'h_team', 'league', 'game_id',
                         'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
@@ -21,14 +21,15 @@ class SippyState:
                     'a_team': 'category',
                     'h_team': 'category',
                     'league': 'category',
-                    'game_id': 'Int32',
-                    'a_pts': 'Int32',
-                    'h_pts': 'Int32',
-                    'secs': 'Int32',
-                    'status': 'Int32',
-                    'a_win': 'Int32',
-                    'h_win': 'Int32',
-                    'num_markets': 'Int32',
+                    'game_id': 'Int64',
+                    'a_pts': 'Int16',
+                    'h_pts': 'Int16',
+                    'secs': 'Int16',
+                    'status': 'Int16',
+                    'a_win': 'Int16',
+                    'h_win': 'Int16',
+                    'last_mod_to_start': 'Float64',
+                    'num_markets': 'Int16',
                     'a_odds_ml': 'Int32',
                     'h_odds_ml': 'Int32',
                     'a_hcap_tot': 'Int32',
@@ -45,20 +46,23 @@ class SippyState:
 
     def read_csv(self):
         path = self.fn
-        print(str(path))
         raw = pd.read_csv(path, usecols=self.headers)
+        l = raw.columns.values.tolist()
+        print(l)
         raw.dropna()
         raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
+        b = raw.columns.values.tolist()
+        print(b[34])
         # print(raw)
         # raw = .drop(['a_team', 'h_team', 'league'], axis=1)
         self.df = raw.copy()
 
     def chunk_df(self):
-        self.df.sort_values(by='game_id', axis=1, inplace=True)
-        self.df.set_index(keys=['game_id'], drop=False, inplace=True)
-        games = self.df['game_id'].unique.tolist()
+        # self.df.sort_values(by='game_id', axis=1, inplace=True)
+        # self.df.set_index(keys=['game_id'], drop=False, inplace=True)
+        games = self.df['game_id'].unique
 
-        print(games)
+        # print(games)
 
     def fit_data(self):
         transformer = RobustScaler().fit(self.df)
@@ -101,7 +105,7 @@ class SipEnv(gym.Env):
         self.eq_h = 0
         self.states = []
         self.state = None
-        self.states.append(self.file_name)
+        # self.states.append(self.file_name)
 
         self.observation_space = spaces.Box(low=--100000000, high=100000000, shape=(12, ))
         self.action_space = spaces.Discrete(3)
@@ -136,14 +140,14 @@ class SipEnv(gym.Env):
                 print('forced skip')
 
         state, done = self.state.next()
-        print(act_name(action))
+        # print(act_name(action))
         new_price = a_odds - h_odds
         if not done:
             new_price = self.state.a_odds()
 
         new_equity_price = new_price * self.eq_a
         reward = (self.money + self.eq_a + self.eq_h) - prev_portfolio
-        print('reward: ' + str(reward))
+        # print('reward: ' + str(reward))
         return state, reward, done, None
 
     def eq_calc(self, odd):
