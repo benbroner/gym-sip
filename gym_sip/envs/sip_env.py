@@ -13,6 +13,7 @@ ACTION_BUY_H = 2
 class SippyState:
     def __init__(self, file_name):
         self.fn = file_name + '.csv'
+        print(file_name)
         self.df = None
         self.headers = ['a_team', 'h_team', 'league', 'game_id',
                         'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
@@ -45,7 +46,8 @@ class SippyState:
         print("Imported data from {}".format(self.fn))
 
     def read_csv(self):
-        path = 'data/' + self.fn
+        path = self.fn
+        print(str(path))
         raw = pd.read_csv(path, usecols=self.headers)
         raw.dropna()
         raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
@@ -57,6 +59,7 @@ class SippyState:
         self.df.sort_values(by='game_id', axis=1, inplace=True)
         self.df.set_index(keys=['game_id'], drop=False, inplace=True)
         games = self.df['game_id'].unique.tolist()
+
         print(games)
 
     def fit_data(self):
@@ -96,7 +99,7 @@ class SipEnv(gym.Env):
     def __init__(self, file_name):
         self.file_name = file_name
         self.num = 1
-        self.money = 3500
+        self.money = 100000
         self.bound = 16
         self.eq_a = 0
         self.eq_h = 0
@@ -143,7 +146,7 @@ class SipEnv(gym.Env):
             new_price = self.state.a_odds()
 
         new_equity_price = new_price * self.eq_a
-        reward = (self.money + new_equity_price) - prev_portfolio
+        reward = (self.money + self.eq_a + self.eq_h) - prev_portfolio
         print('reward: ' + str(reward))
         return state, reward, done, None
 
