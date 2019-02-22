@@ -1,8 +1,6 @@
 import gym
 import random
 import pandas as pd
-import numpy as np
-from gym import spaces
 from sklearn.preprocessing import RobustScaler
 
 ACTION_SKIP = 0
@@ -31,7 +29,7 @@ class SippyState:
             return None, True
 
         values = self.game.iloc[self.index, 0:]
-        # print(values)
+
         self.index += 1
 
         return values, False
@@ -44,6 +42,9 @@ class SippyState:
 
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
+
+    def a_win(self):
+        return int(self.game.iloc[self.index, ])
 
     def num_games(self):
         return len(self.game['game_id'].unique())
@@ -83,7 +84,8 @@ class SipEnv(gym.Env):
         self.ids = []
         self.chunk_df()
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
-
+        self.a_bet_count = 0
+        self.h_bet_count = 0
         self.bet_amt = 100
         self.money = 0  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
         self.bound = 16
@@ -94,6 +96,7 @@ class SipEnv(gym.Env):
         self.h_odds = 0
         self.adj_a_odds = 0
         self.adj_h_odds = 0
+
 
         self.state = None
 
@@ -107,17 +110,15 @@ class SipEnv(gym.Env):
         assert self.action_space.contains(action)
 
         portfolio = self.money + (self.eq_a * self.a_odds) + (self.eq_h * self.h_odds)
-        price = self.a_odds + self.h_odds
+
         prev_portfolio = self.money + self.eq_a + self.eq_h
 
         self.actions(action)
 
         state, done = self.state.next()
 
-        new_price = price
         if not done:
             self.get_odds()
-            new_price = self.a_odds + self.h_odds
 
         reward = self.money + self.eq_a + self.eq_h - prev_portfolio
 
@@ -142,22 +143,33 @@ class SipEnv(gym.Env):
 
     def actions(self, action):
         if action == ACTION_BUY_A:
-            if self.a_odds != 0:
+            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
                 self.money -= self.bet_amt
                 self.eq_a += self.adj_a_odds
-            else:
-                print(str(self.a_odds) + ' a')
+                self.a_bet_count += 1
+            # else:
+            #     # print(str(self.a_odds) + ' a')
         if action == ACTION_BUY_H:
-            if self.h_odds != 0:
+            if self.h_odds != 0 or self.h_bet_count < self.max_bets:
                 self.money -= self.bet_amt
                 self.eq_h += self.adj_h_odds
-            else:
-                print('forced skip')
+                self.h_bet_count += 1
+            # else:
+            #     # print('forced skip')
+
+    def next(self):
+        new_id = random.choice(self.ids)
+        self.state = SippyState(self.states[new_id])
+
+        self.eq_a = 0
+        self.eq_h = 0
+
+        state, done = self.state.next()
+        return state
 
     def reset(self):
-        cur_id = random.choice(self.ids)
-        self.state = SippyState(self.states[cur_id])
-
+        new_id = random.choice(self.ids)
+        self.state = SippyState(self.states[new_id])
         self.money = 0
         self.eq_a = 0
         self.eq_h = 0
