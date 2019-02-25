@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 env = gym.make('Sip-v0')
 env.reset()
 
-epochs = 5000
+epochs = 1000
 plot_count = 100
 div = epochs / plot_count
 ecount = 500
@@ -33,6 +33,8 @@ def test():
 
         plt.scatter(i, r, color='r', s=10, marker='o')
         plt.scatter(i, reward_sum, color='b', s=10, marker='o')
+        plt.scatter(i, env.state.a_odds(), color='g', s=10, marker='o')
+        plt.scatter(i, env.state.h_odds(), color='y', s=10, marker='o')
 
     print(str(reward_sum))
     plt.show()
