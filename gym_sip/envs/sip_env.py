@@ -84,7 +84,7 @@ class SipEnv(gym.Env):
         # print(self.ids)
 
         self.max_bets = 200  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
-
+        self.bet_count = 0
         self.a_bet_count = 0
         self.h_bet_count = 0
 
@@ -110,7 +110,7 @@ class SipEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
-
+        odds = []
         prev_portfolio = self.money
 
         state, done = self.state.next()
@@ -122,10 +122,12 @@ class SipEnv(gym.Env):
         self.actions(action)
 
         reward = self.money - prev_portfolio
+        odds.append(self.state.a_odds())
+        odds.append(self.state.h_odds())
 
         print('id: ' + str(self.new_id) + 'r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
 
-        return state, reward, done, None
+        return state, reward, done, odds
 
     def actions(self, action):
         if action == ACTION_BUY_A:

@@ -21,7 +21,7 @@ def test():
         metadata = {'render.modes': ['rgb_array']}
         s, r, d, m = env.step(random.randrange(0, env.action_space.n))
         reward_sum += r
-
+        print(m)
         if i % (epochs / div) == 0:
             print(str(reward_sum))
 
@@ -33,8 +33,8 @@ def test():
 
         plt.scatter(i, r, color='r', s=10, marker='o')
         plt.scatter(i, reward_sum, color='b', s=10, marker='o')
-        plt.scatter(i, env.state.a_odds(), color='g', s=10, marker='o')
-        plt.scatter(i, env.state.h_odds(), color='y', s=10, marker='o')
+        plt.scatter(i, m[0], color='g', s=10, marker='o')
+        plt.scatter(i, m[1], color='y', s=10, marker='o')
 
     print(str(reward_sum))
     plt.show()
