@@ -84,7 +84,6 @@ class SipEnv(gym.Env):
         # print(self.ids)
 
         self.max_bets = 200  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
-        self.bet_count = 0
         self.a_bet_count = 0
         self.h_bet_count = 0
 
@@ -101,6 +100,7 @@ class SipEnv(gym.Env):
 
         self.new_id = random.choice(self.ids)
         self.state = SippyState(self.states[self.new_id])
+        self.bet_count = 0
 
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ), dtype='Int32')
         self.action_space = spaces.Discrete(3)
@@ -125,7 +125,7 @@ class SipEnv(gym.Env):
         odds.append(self.state.a_odds())
         odds.append(self.state.h_odds())
 
-        print('id: ' + str(self.new_id) + 'r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
+        print('id: ' + str(self.new_id) + ' r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
 
         return state, reward, done, odds
 
@@ -139,8 +139,9 @@ class SipEnv(gym.Env):
                 self.a_bet_count += 1
                 #print(self.observation_space)
                 self.last_bet = ACTION_BUY_A
-            else:
-                self.money -= 1
+            #
+            # else:
+            #     self.money -= 1
         if action == ACTION_BUY_H:
             if self.h_odds != 0 and self.h_bet_count < self.max_bets: #  and self.last_bet != ACTION_BUY_H:
                 if self.state.real_win() == 1:
@@ -149,10 +150,10 @@ class SipEnv(gym.Env):
                 self.money -= self.bet_amt
                 self.h_bet_count += 1
                 self.last_bet = ACTION_BUY_H
-            else:
-                self.money -= 1
-        if action == ACTION_SKIP:
-            self.money -= 1  # lose a dollar on wait
+            # else:
+            #     self.money -= 1
+        # if action == ACTION_SKIP:
+        #     self.money -= 1  # lose a dollar on wait
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
