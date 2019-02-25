@@ -122,38 +122,34 @@ class SipEnv(gym.Env):
 
         self.actions(action)
 
-        reward = (self.money / self.init_money) * (self.money - prev_portfolio)
+        reward = self.money - prev_portfolio
         # bet_profit =
         odds.append(self.state.a_odds())
         odds.append(self.state.h_odds())
 
-        print('a: ' + str(action) + ' id: ' + str(self.new_id) + ' r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
+        print('a: ' + str(action) + ' id: ' + str(self.new_id) + ' win: ' + str(self.state.real_win()) +
+              ' r: ' + str(reward) + ' | a_odds '
+              + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
 
         return state, reward, done, odds
 
     def actions(self, action):
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.a_bet_count < self.max_bets and self.last_bet != ACTION_BUY_A:
+            if self.adj_a_odds != 0 and self.a_bet_count < self.max_bets and self.last_bet != ACTION_BUY_A:
                 if self.state.real_win() == 0:
                     self.bet_profit = self.adj_a_odds * self.bet_amt
                     self.money += self.bet_profit
-                self.money -= self.bet_amt
+                # self.money -= self.bet_amt
                 self.a_bet_count += 1
-                #print(self.observation_space)
                 self.last_bet = ACTION_BUY_A
-            #
-            # else:
-            #     self.money -= 1
         if action == ACTION_BUY_H:
-            if self.h_odds != 0 and self.h_bet_count < self.max_bets and self.last_bet != ACTION_BUY_H:
+            if self.adj_a_odds != 0 and self.h_bet_count < self.max_bets and self.last_bet != ACTION_BUY_H:
                 if self.state.real_win() == 1:
                     self.bet_profit = self.adj_a_odds * self.bet_amt
                     self.money += self.bet_profit
-                self.money -= self.bet_amt
+                # self.money -= self.bet_amt
                 self.h_bet_count += 1
                 self.last_bet = ACTION_BUY_H
-            # else:
-            #     self.money -= 1
         if action == ACTION_SKIP:
             self.money -= 1  # lose a dollar on wait
 
