@@ -11,12 +11,10 @@ ACTION_BUY_H = 2
 
 class SippyState:
     def __init__(self, game):
-        # print(game)
         self.game = game  # df for game
-        self.win = game['real_win'].unique()[0]
-        print(str(self.win))
         self.id = self.game.iloc[0, 2]  # first row, second column
         self.index = 0
+        print(self.game['real_win'].values[1])
 
         print("Imported data from {}".format(self.id))
 
@@ -45,9 +43,6 @@ class SippyState:
 
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
-
-    # def a_win(self):
-    #     return int(self.game.iloc[self.index, 6])
 
     def num_games(self):
         return len(self.game['game_id'].unique())
@@ -82,16 +77,21 @@ class SipEnv(gym.Env):
                     'a_hcap_tot': 'Int32',
                     'h_hcap_tot': 'Int32'
         }
-        self.read_csv()
+
         self.states = {}
         self.ids = []
+
+        self.read_csv()
         self.chunk_df()
+        self.wins()
+
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
+
         self.a_bet_count = 0
         self.h_bet_count = 0
+
         self.bet_amt = 100
         self.money = 0  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
-        self.bound = 16
 
         self.eq_a = 0
         self.eq_h = 0
@@ -100,7 +100,8 @@ class SipEnv(gym.Env):
         self.adj_a_odds = 0
         self.adj_h_odds = 0
 
-        self.state = None
+        new_id = random.choice(self.ids)
+        self.state = SippyState(self.states[new_id])
 
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
         self.action_space = spaces.Discrete(3)
@@ -110,12 +111,10 @@ class SipEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
-        reward = 0
-        portfolio = self.money
+
         prev_portfolio = self.money
 
         self.actions(action)
-
         state, done = self.state.next()
 
         if not done:
@@ -131,24 +130,44 @@ class SipEnv(gym.Env):
         raw = pd.read_csv(self.fn, usecols=self.headers)
         raw = raw.dropna()
         raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
-
+        raw['real_win'] = -1
         self.df = raw.copy()
 
     def chunk_df(self):
         self.ids = self.df['game_id'].unique().tolist()
         self.states = {key: val for key, val in self.df.groupby('game_id')}
-        self.wins()
 
     def wins(self):
+        print(str(len(self.ids)))
         for game_key in self.ids:
             game = self.states[game_key]
-            ret = win_set(game)
-            if ret is None:
-                del self.states[game_key]
-                self.ids.remove(game_key)
-                print('game_id: ' + str(game_key) + ' victory could not be determined, removed from dict')
-            else:
-                self.states[game_key] = ret
+            self.win_set(game, game_key)
+            # try:
+            #     print(self.states[game_key]['real_win'])
+            # except KeyError:
+            #     continue
+        print(str(len(self.ids)))
+
+    def win_set(self, game, key):
+        away_win = 0
+        home_win = 0
+        a_win = game['a_win'].unique().tolist()
+        h_win = game['h_win'].unique().tolist()
+
+        for elt in a_win:
+            if elt == 1:
+                away_win = 1
+        for elt in h_win:
+            if elt == 1:
+                home_win = 1
+
+        if (away_win == 1 and home_win == 1) or (away_win == 0 and home_win == 0):
+            del self.states[key]
+            self.ids.remove(key)
+        elif away_win == 1:
+            self.states[key]['real_win'] = 0
+        else:
+            self.states[key]['real_win'] = 1  # a home team win is 1
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -210,23 +229,4 @@ def eq_calc(odd):
         return abs(100/odd)
 
 
-def win_set(game):
-    away_win = 0
-    home_win = 0
 
-    a_win = game['a_win'].unique().tolist()
-    h_win = game['h_win'].unique().tolist()
-
-    for elt in a_win:
-        if elt == 1:
-            away_win = 1
-    for elt in h_win:
-        if elt == 1:
-            home_win = 1
-    if (away_win == 1 and home_win == 1) or (away_win == 0 and home_win == 0):
-        return None
-    elif away_win == 1:
-        game['real_win'] = 0
-    else:
-        game['real_win'] = 1
-    return game

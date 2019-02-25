@@ -10,7 +10,7 @@ reward_sum = 0
 for i in range(10):
     s, r, d, m = env.step(random.randrange(0, env.action_space.n))
     reward_sum += r
-    if i % 100 == 0:
-        print(str(reward_sum))
+    # if i % 100 == 0:
+    #     print(str(reward_sum))
     if d == 1:
         env.next()
