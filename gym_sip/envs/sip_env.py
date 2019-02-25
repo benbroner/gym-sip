@@ -18,10 +18,6 @@ class SippyState:
 
         # print("Imported data from {}".format(self.id))
 
-    def fit_data(self):
-        transformer = RobustScaler().fit(self.game)
-        transformer.transform(self.game)
-
     def reset(self):
         self.index = 0
 
@@ -54,6 +50,7 @@ class SippyState:
 
 class SipEnv(gym.Env):
     metadata = {'render.modes': ['rgb_array']}
+
     def __init__(self, file_name):
 
         self.fn = 'data/' + file_name + '.csv'
@@ -89,7 +86,7 @@ class SipEnv(gym.Env):
         self.wins()
         # print(self.ids)
 
-        self.max_bets = 100  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
+        self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
 
         self.a_bet_count = 0
         self.h_bet_count = 0
@@ -107,7 +104,7 @@ class SipEnv(gym.Env):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
 
-        self.observation_space = self.state
+        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ), dtype='Int32')
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
@@ -118,15 +115,13 @@ class SipEnv(gym.Env):
 
         prev_portfolio = self.money
 
-        self.actions(action)
         state, done = self.state.next()
 
         # print(done)
         if not done:
             self.get_odds()
 
-        if done:
-            self.money -= self.bet_amt
+        self.actions(action)
 
         reward = self.money - prev_portfolio
         print(str(reward))
@@ -148,13 +143,17 @@ class SipEnv(gym.Env):
                     self.money += revenue
                 self.money -= self.bet_amt
                 self.h_bet_count += 1
-                print(self.observation_space)
+                # print(self.observation_space)
+        if action == ACTION_SKIP:
+            self.money -= 1  # lose a dollar on wait
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
         raw = raw.dropna()
         raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
         raw['real_win'] = -1
+        # transformer = RobustScaler().fit(raw)
+        # raw = transformer.transform(raw)
         self.df = raw.copy()
 
     def chunk_df(self):
@@ -162,11 +161,11 @@ class SipEnv(gym.Env):
         self.states = {key: val for key, val in self.df.groupby('game_id')}
 
     def wins(self):
-        print(str(len(self.ids)))
+        print('num games tot: ' + str(len(self.ids)))
         for game_key in self.ids:
             game = self.states[game_key]
             self.win_set(game, game_key)
-        print(str(len(self.ids)))
+        print('won_games_detected: ' + str(len(self.ids)))
 
     def win_set(self, game, key):
         away_win = 0
