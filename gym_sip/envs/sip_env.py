@@ -2,7 +2,9 @@ import gym
 import random
 import pandas as pd
 from gym import spaces
+
 from sklearn.preprocessing import RobustScaler
+
 
 ACTION_SKIP = 0
 ACTION_BUY_A = 1
@@ -12,11 +14,8 @@ ACTION_BUY_H = 2
 class SippyState:
     def __init__(self, game):
         self.game = game  # df for game
-
         self.index = 0
         self.win = self.game['real_win'].values[0]
-
-        # print("Imported data from {}".format(self.id))
 
     def reset(self):
         self.index = 0
@@ -28,8 +27,6 @@ class SippyState:
         values = self.game.iloc[self.index, 0:]
 
         self.index += 1
-        # print(values['a_odds_ml'])
-        # print(values['h_odds_ml'])
         return values, False
 
     def shape(self):
@@ -86,7 +83,7 @@ class SipEnv(gym.Env):
         self.wins()
         # print(self.ids)
 
-        self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
+        self.max_bets = 100 # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
 
         self.a_bet_count = 0
         self.h_bet_count = 0
@@ -100,6 +97,7 @@ class SipEnv(gym.Env):
         self.h_odds = 0
         self.adj_a_odds = 0
         self.adj_h_odds = 0
+        self.last_bet = None
 
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
@@ -124,32 +122,37 @@ class SipEnv(gym.Env):
         self.actions(action)
 
         reward = self.money - prev_portfolio
-        print(str(reward))
+
+        print('r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
+
         return state, reward, done, None
 
     def actions(self, action):
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
+            if self.a_odds != 0 and self.a_bet_count < self.max_bets and self.last_bet != ACTION_BUY_A:
                 if self.state.real_win() == 0:
                     revenue = self.adj_a_odds * self.bet_amt
                     self.money += revenue
                 self.money -= self.bet_amt
                 self.a_bet_count += 1
-                print(self.observation_space)
+                #print(self.observation_space)
+                self.last_bet = ACTION_BUY_A
         if action == ACTION_BUY_H:
-            if self.h_odds != 0 or self.h_bet_count < self.max_bets:
+            if self.h_odds != 0 and self.h_bet_count < self.max_bets and self.last_bet != ACTION_BUY_H:
                 if self.state.real_win() == 1:
                     revenue = self.adj_a_odds * self.bet_amt
                     self.money += revenue
                 self.money -= self.bet_amt
                 self.h_bet_count += 1
-                # print(self.observation_space)
-        if action == ACTION_SKIP:
-            self.money -= 1  # lose a dollar on wait
+                self.last_bet = ACTION_BUY_H
+        # if action == ACTION_SKIP:
+        #     self.money -= 1  # lose a dollar on wait
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
         raw = raw.dropna()
+        self.ids = self.df['game_id'].unique().tolist()
+
         raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
         raw['real_win'] = -1
         # transformer = RobustScaler().fit(raw)
@@ -157,7 +160,6 @@ class SipEnv(gym.Env):
         self.df = raw.copy()
 
     def chunk_df(self):
-        self.ids = self.df['game_id'].unique().tolist()
         self.states = {key: val for key, val in self.df.groupby('game_id')}
 
     def wins(self):
@@ -203,7 +205,7 @@ class SipEnv(gym.Env):
 
         self.eq_a = 0
         self.eq_h = 0
-
+        self.last_bet = None
         state, done = self.state.next()
         return state
 
@@ -216,7 +218,7 @@ class SipEnv(gym.Env):
         self.money = 0
         self.eq_a = 0
         self.eq_h = 0
-
+        self.last_bet = None
         state, done = self.state.next()
         return state
 
