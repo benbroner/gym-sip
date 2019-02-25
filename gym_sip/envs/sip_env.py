@@ -11,7 +11,7 @@ ACTION_BUY_H = 2
 
 class SippyState:
     def __init__(self, game):
-        print(game)
+        # print(game)
         self.game = game  # df for game
 
         self.id = self.game.iloc[0, 2]  # first row, second column
@@ -99,7 +99,6 @@ class SipEnv(gym.Env):
         self.adj_a_odds = 0
         self.adj_h_odds = 0
 
-
         self.state = None
 
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
@@ -137,6 +136,23 @@ class SipEnv(gym.Env):
     def chunk_df(self):
         self.ids = self.df['game_id'].unique().tolist()
         self.states = {key: val for key, val in self.df.groupby('game_id')}
+        self.wins()
+
+    def wins(self):
+        states_copy = self.states.copy()
+        ids_copy = self.ids
+
+        for game_key in ids_copy:
+            game = states_copy[game_key]
+            ret = win_set(game)
+            if ret is None:
+                del states_copy[game_key]
+                ids_copy.remove(game_key)
+                print('game_id: ' + str(game_key) + 'victory could not be determined, removed from dict')
+            game = ret
+            states_copy[game_key] = game
+        self.states = states_copy
+        self.ids = ids_copy
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -200,3 +216,25 @@ def eq_calc(odd):
         return odd/100.
     elif odd < 100:
         return abs(100/odd)
+
+
+def win_set(game):
+    away_win = 0
+    home_win = 0
+
+    a_win = game['a_win'].unique().tolist()
+    h_win = game['h_win'].unique().tolist()
+
+    for elt in a_win:
+        if elt == 1:
+            away_win = 1
+    for elt in h_win:
+        if elt == 1:
+            home_win = 1
+    if (away_win == 1 and home_win == 1) or (away_win == 0 and home_win == 0):
+        return None
+    elif away_win == 1:
+        game['real_win'] = 0
+    else:
+        game['real_win'] = 1
+    return game
