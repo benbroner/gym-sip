@@ -88,8 +88,8 @@ class SipEnv(gym.Env):
         self.h_bet_count = 0
 
         self.bet_amt = 100
-        self.money = 0  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
-
+        self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
+        self.init_money = 10000
         self.eq_a = 0
         self.eq_h = 0
         self.a_odds = 0
@@ -97,6 +97,7 @@ class SipEnv(gym.Env):
         self.adj_a_odds = 0
         self.adj_h_odds = 0
         self.last_bet = None
+        self.bet_profit = 0
 
         self.new_id = random.choice(self.ids)
         self.state = SippyState(self.states[self.new_id])
@@ -121,20 +122,21 @@ class SipEnv(gym.Env):
 
         self.actions(action)
 
-        reward = self.money - prev_portfolio
+        reward = (self.money / self.init_money) * (self.money - prev_portfolio)
+        # bet_profit =
         odds.append(self.state.a_odds())
         odds.append(self.state.h_odds())
 
-        print('id: ' + str(self.new_id) + ' r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
+        print('a: ' + str(action) + ' id: ' + str(self.new_id) + ' r: ' + str(reward) + ' | a_odds ' + str(self.state.a_odds()) + ' | h_odds ' + str(self.state.h_odds()))
 
         return state, reward, done, odds
 
     def actions(self, action):
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.a_bet_count < self.max_bets: #  and self.last_bet != ACTION_BUY_A:
+            if self.a_odds != 0 and self.a_bet_count < self.max_bets and self.last_bet != ACTION_BUY_A:
                 if self.state.real_win() == 0:
-                    revenue = self.adj_a_odds * self.bet_amt
-                    self.money += revenue
+                    self.bet_profit = self.adj_a_odds * self.bet_amt
+                    self.money += self.bet_profit
                 self.money -= self.bet_amt
                 self.a_bet_count += 1
                 #print(self.observation_space)
@@ -143,17 +145,17 @@ class SipEnv(gym.Env):
             # else:
             #     self.money -= 1
         if action == ACTION_BUY_H:
-            if self.h_odds != 0 and self.h_bet_count < self.max_bets: #  and self.last_bet != ACTION_BUY_H:
+            if self.h_odds != 0 and self.h_bet_count < self.max_bets and self.last_bet != ACTION_BUY_H:
                 if self.state.real_win() == 1:
-                    revenue = self.adj_a_odds * self.bet_amt
-                    self.money += revenue
+                    self.bet_profit = self.adj_a_odds * self.bet_amt
+                    self.money += self.bet_profit
                 self.money -= self.bet_amt
                 self.h_bet_count += 1
                 self.last_bet = ACTION_BUY_H
             # else:
             #     self.money -= 1
-        # if action == ACTION_SKIP:
-        #     self.money -= 1  # lose a dollar on wait
+        if action == ACTION_SKIP:
+            self.money -= 1  # lose a dollar on wait
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
