@@ -12,11 +12,11 @@ ACTION_BUY_H = 2
 class SippyState:
     def __init__(self, game):
         self.game = game  # df for game
-        self.id = self.game.iloc[0, 2]  # first row, second column
-        self.index = 0
-        print(self.game['real_win'].values[1])
 
-        print("Imported data from {}".format(self.id))
+        self.index = 0
+        self.win = self.game['real_win'].values[0]
+
+        # print("Imported data from {}".format(self.id))
 
     def fit_data(self):
         transformer = RobustScaler().fit(self.game)
@@ -43,6 +43,9 @@ class SippyState:
 
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
+
+    def real_win(self):
+        return int(self.win)
 
     def num_games(self):
         return len(self.game['game_id'].unique())
@@ -84,6 +87,7 @@ class SipEnv(gym.Env):
         self.read_csv()
         self.chunk_df()
         self.wins()
+        print(self.ids)
 
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
 
@@ -142,10 +146,6 @@ class SipEnv(gym.Env):
         for game_key in self.ids:
             game = self.states[game_key]
             self.win_set(game, game_key)
-            # try:
-            #     print(self.states[game_key]['real_win'])
-            # except KeyError:
-            #     continue
         print(str(len(self.ids)))
 
     def win_set(self, game, key):
@@ -178,17 +178,22 @@ class SipEnv(gym.Env):
     def actions(self, action):
         if action == ACTION_BUY_A:
             if self.a_odds != 0 or self.a_bet_count < self.max_bets:
+                if self.state.real_win() == 0:
+                    self.money += self.eq_a * self.bet_amt
                 self.money -= self.bet_amt
-                self.eq_a += self.adj_a_odds
                 self.a_bet_count += 1
         if action == ACTION_BUY_H:
             if self.h_odds != 0 or self.h_bet_count < self.max_bets:
+                if self.state.real_win() == 1:
+                    self.money += self.eq_h * self.bet_amt
                 self.money -= self.bet_amt
-                self.eq_h += self.adj_h_odds
                 self.h_bet_count += 1
 
     def next(self):
         new_id = random.choice(self.ids)
+        while new_id == 0:
+            self.ids.remove(new_id)
+            new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
 
         self.eq_a = 0
@@ -199,6 +204,9 @@ class SipEnv(gym.Env):
 
     def reset(self):
         new_id = random.choice(self.ids)
+        while new_id == 0:
+            self.ids.remove(new_id)
+            new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
         self.money = 0
         self.eq_a = 0
@@ -227,6 +235,3 @@ def eq_calc(odd):
         return odd/100.
     elif odd < 100:
         return abs(100/odd)
-
-
-
