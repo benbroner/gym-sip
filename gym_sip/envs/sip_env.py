@@ -32,7 +32,8 @@ class SippyState:
         values = self.game.iloc[self.index, 0:]
 
         self.index += 1
-
+        # print(values['a_odds_ml'])
+        # print(values['h_odds_ml'])
         return values, False
 
     def shape(self):
@@ -52,8 +53,7 @@ class SippyState:
 
 
 class SipEnv(gym.Env):
-    metadata = {'render.modes': ['human']}
-
+    metadata = {'render.modes': ['rgb_array']}
     def __init__(self, file_name):
 
         self.fn = 'data/' + file_name + '.csv'
@@ -87,9 +87,9 @@ class SipEnv(gym.Env):
         self.read_csv()
         self.chunk_df()
         self.wins()
-        print(self.ids)
+        # print(self.ids)
 
-        self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
+        self.max_bets = 100  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
 
         self.a_bet_count = 0
         self.h_bet_count = 0
@@ -107,7 +107,7 @@ class SipEnv(gym.Env):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
 
-        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
+        self.observation_space = self.state
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
@@ -121,14 +121,34 @@ class SipEnv(gym.Env):
         self.actions(action)
         state, done = self.state.next()
 
+        # print(done)
         if not done:
             self.get_odds()
+
         if done:
             self.money -= self.bet_amt
 
         reward = self.money - prev_portfolio
-
+        print(str(reward))
         return state, reward, done, None
+
+    def actions(self, action):
+        if action == ACTION_BUY_A:
+            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
+                if self.state.real_win() == 0:
+                    revenue = self.adj_a_odds * self.bet_amt
+                    self.money += revenue
+                self.money -= self.bet_amt
+                self.a_bet_count += 1
+                print(self.observation_space)
+        if action == ACTION_BUY_H:
+            if self.h_odds != 0 or self.h_bet_count < self.max_bets:
+                if self.state.real_win() == 1:
+                    revenue = self.adj_a_odds * self.bet_amt
+                    self.money += revenue
+                self.money -= self.bet_amt
+                self.h_bet_count += 1
+                print(self.observation_space)
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
@@ -174,20 +194,6 @@ class SipEnv(gym.Env):
         self.h_odds = self.state.h_odds()
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
-
-    def actions(self, action):
-        if action == ACTION_BUY_A:
-            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
-                if self.state.real_win() == 0:
-                    self.money += self.eq_a * self.bet_amt
-                self.money -= self.bet_amt
-                self.a_bet_count += 1
-        if action == ACTION_BUY_H:
-            if self.h_odds != 0 or self.h_bet_count < self.max_bets:
-                if self.state.real_win() == 1:
-                    self.money += self.eq_h * self.bet_amt
-                self.money -= self.bet_amt
-                self.h_bet_count += 1
 
     def next(self):
         new_id = random.choice(self.ids)
