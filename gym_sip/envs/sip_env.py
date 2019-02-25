@@ -13,7 +13,8 @@ class SippyState:
     def __init__(self, game):
         # print(game)
         self.game = game  # df for game
-
+        self.win = game['real_win'].unique()[0]
+        print(str(self.win))
         self.id = self.game.iloc[0, 2]  # first row, second column
         self.index = 0
 
@@ -45,8 +46,8 @@ class SippyState:
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
 
-    def a_win(self):
-        return int(self.game.iloc[self.index, ])
+    # def a_win(self):
+    #     return int(self.game.iloc[self.index, 6])
 
     def num_games(self):
         return len(self.game['game_id'].unique())
@@ -110,9 +111,8 @@ class SipEnv(gym.Env):
     def step(self, action):
         assert self.action_space.contains(action)
         reward = 0
-        portfolio = self.money + (self.eq_a * self.a_odds) + (self.eq_h * self.h_odds)
-
-        prev_portfolio = self.money + self.eq_a + self.eq_h
+        portfolio = self.money
+        prev_portfolio = self.money
 
         self.actions(action)
 
@@ -121,8 +121,9 @@ class SipEnv(gym.Env):
         if not done:
             self.get_odds()
         if done:
-            reward -= self.bet_amt
-        reward = self.money + self.eq_a + self.eq_h - prev_portfolio
+            self.money -= self.bet_amt
+
+        reward = self.money - prev_portfolio
 
         return state, reward, done, None
 
@@ -139,20 +140,15 @@ class SipEnv(gym.Env):
         self.wins()
 
     def wins(self):
-        states_copy = self.states.copy()
-        ids_copy = self.ids
-
-        for game_key in ids_copy:
-            game = states_copy[game_key]
+        for game_key in self.ids:
+            game = self.states[game_key]
             ret = win_set(game)
             if ret is None:
-                del states_copy[game_key]
-                ids_copy.remove(game_key)
-                print('game_id: ' + str(game_key) + 'victory could not be determined, removed from dict')
-            game = ret
-            states_copy[game_key] = game
-        self.states = states_copy
-        self.ids = ids_copy
+                del self.states[game_key]
+                self.ids.remove(game_key)
+                print('game_id: ' + str(game_key) + ' victory could not be determined, removed from dict')
+            else:
+                self.states[game_key] = ret
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -166,15 +162,11 @@ class SipEnv(gym.Env):
                 self.money -= self.bet_amt
                 self.eq_a += self.adj_a_odds
                 self.a_bet_count += 1
-            # else:
-            #     # print(str(self.a_odds) + ' a')
         if action == ACTION_BUY_H:
             if self.h_odds != 0 or self.h_bet_count < self.max_bets:
                 self.money -= self.bet_amt
                 self.eq_h += self.adj_h_odds
                 self.h_bet_count += 1
-            # else:
-            #     # print('forced skip')
 
     def next(self):
         new_id = random.choice(self.ids)
@@ -210,7 +202,7 @@ def act_name(act):
 
 
 def eq_calc(odd):
-    if odd == 0:
+    if odd == 0:  # may cause bugs
         return 0
     if odd >= 100:
         return odd/100.
