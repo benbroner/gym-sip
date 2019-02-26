@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 env = gym.make('Sip-v0')
 env.reset()
 
-epochs = 1000
+epochs = 10000
 plot_count = 100
 div = epochs / plot_count
 ecount = 500
@@ -21,7 +21,7 @@ def test():
         metadata = {'render.modes': ['rgb_array']}
         s, r, d, m = env.step(random.randrange(0, env.action_space.n))
         reward_sum += r
-        print(m)
+        # print(m)
         if i % (epochs / div) == 0:
             print(str(reward_sum))
 
