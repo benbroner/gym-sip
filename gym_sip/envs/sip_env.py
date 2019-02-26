@@ -107,7 +107,7 @@ class SipEnv(gym.Env):
         self.state = SippyState(self.states[self.new_id])
         self.bet_count = 0
 
-        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ), dtype='Int32')
+        self.observation_space = spaces.Box(low=--10000., high=100000000., shape=(537, ), dtype='Int32')
         self.action_space = spaces.Discrete(3)
 
         if len(self.states) == 0:
@@ -122,7 +122,7 @@ class SipEnv(gym.Env):
 
         state, done = self.state.next()
 
-        print(state['secs', 'a_'])
+        # print(state['secs', 'a_'])
         if not done:
             self.get_odds()
 
@@ -148,8 +148,10 @@ class SipEnv(gym.Env):
                 if self.state.a_won() == 1:
                     self.bet_profit = self.adj_a_odds * self.bet_amt
                     self.money += self.bet_profit
+                    print('w a')
                 elif self.state.a_won() == 0:
                     self.money -= self.bet_amt
+                    print('l a')
                 self.a_bet_count += 1
                 self.last_bet = ACTION_BUY_A
         if action == ACTION_BUY_H:
@@ -157,12 +159,15 @@ class SipEnv(gym.Env):
                 if self.state.h_won() == 1:
                     self.bet_profit = self.adj_a_odds * self.bet_amt
                     self.money += self.bet_profit
+                    print('w h')
                 elif self.state.h_won() == 0:
                     self.money -= self.bet_amt
+                    print('l h')
                 self.h_bet_count += 1
                 self.last_bet = ACTION_BUY_H
-        # if action == ACTION_SKIP:
-        #     self.money -= (0.01 * self.money) + 1  # lose a dollar on wait
+        if action == ACTION_SKIP:
+            self.money -= 1  # lose a dollar on wait
+            print('s')
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
@@ -217,12 +222,11 @@ class SipEnv(gym.Env):
         self.adj_h_odds = eq_calc(self.h_odds)
 
     def next(self):
-        self.new_id = random.choice(self.ids)
-        while self.new_id == 0:
-            self.ids.remove(self.new_id)
-            self.new_id = random.choice(self.ids)
+        self.get_id()
         self.state = SippyState(self.states[self.new_id])
-
+        self.bet_count = 0
+        self.a_bet_count = 0
+        self.h_bet_count = 0
         self.eq_a = 0
         self.eq_h = 0
         self.last_bet = None
@@ -230,18 +234,24 @@ class SipEnv(gym.Env):
         return state
 
     def reset(self):
-        self.new_id = random.choice(self.ids)
-
-        while self.new_id == 0:
-            self.ids.remove(self.new_id)
-            self.new_id = random.choice(self.ids)
+        self.get_id()
         self.state = SippyState(self.states[self.new_id])
         self.money = 0
+        self.bet_count = 0
+        self.a_bet_count = 0
+        self.h_bet_count = 0
         self.eq_a = 0
         self.eq_h = 0
         self.last_bet = None
         state, done = self.state.next()
         return state
+
+    def get_id(self):
+        self.new_id = random.choice(self.ids)
+
+        while self.new_id == 0:
+            self.ids.remove(self.new_id)
+            self.new_id = random.choice(self.ids)
 
     def _render(self, mode='human', close=False):
         pass

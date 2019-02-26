@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 env = gym.make('Sip-v0')
 env.reset()
 
-epochs = 10000
+epochs = 30000
 plot_count = 100
 div = epochs / plot_count
 ecount = 500
