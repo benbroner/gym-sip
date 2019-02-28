@@ -6,16 +6,17 @@ from sklearn.preprocessing import RobustScaler
 
 ACTION_SKIP = 0
 ACTION_BUY_A = 1
-ACTION_BUY_H = 2
+# ACTION_BUY_H = 2
 
 
 class SippyState:
     def __init__(self, game):
         # print(game)
         self.game = game  # df for game
-        self.win = game['real_win'].unique()[0]
-        print(str(self.win))
-        self.id = self.game.iloc[0, 2]  # first row, second column
+        # self.win = game['a_win'].unique()[0]
+
+        # print(str(self.win))
+        self.id = self.game.iloc[:, 2].unique().tolist()  # first row, second column
         self.index = 0
 
         print("Imported data from {}".format(self.id))
@@ -99,11 +100,12 @@ class SipEnv(gym.Env):
         self.h_odds = 0
         self.adj_a_odds = 0
         self.adj_h_odds = 0
+        self.a_bet_amt = 0
 
         self.state = None
 
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(2)
 
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(self.fn))
@@ -114,18 +116,30 @@ class SipEnv(gym.Env):
         portfolio = self.money
         prev_portfolio = self.money
 
-        self.actions(action)
-
         state, done = self.state.next()
 
         if not done:
             self.get_odds()
-        if done:
-            self.money -= self.bet_amt
+        # if done:
+        #     self.money -= self.bet_amt
+
+        self.actions(action)
 
         reward = self.money - prev_portfolio
 
         return state, reward, done, None
+
+    def actions(self, action):
+        if action == ACTION_BUY_A:
+            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
+                self.a_bet_amt = (self.eq_h * self.bet_amt) / (self.adj_a_odds + 1)
+                self.money += self.a_bet_amt * self.adj_a_odds - self.bet_amt
+                self.a_bet_count += 1
+        # if action == ACTION_BUY_H:
+        #     if self.h_odds != 0 or self.h_bet_count < self.max_bets:
+        #         self.money -= self.bet_amt
+        #         self.eq_h += self.adj_h_odds
+        #         self.h_bet_count += 1
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
@@ -137,18 +151,18 @@ class SipEnv(gym.Env):
     def chunk_df(self):
         self.ids = self.df['game_id'].unique().tolist()
         self.states = {key: val for key, val in self.df.groupby('game_id')}
-        self.wins()
+        # self.wins()
 
-    def wins(self):
-        for game_key in self.ids:
-            game = self.states[game_key]
-            ret = win_set(game)
-            if ret is None:
-                del self.states[game_key]
-                self.ids.remove(game_key)
-                print('game_id: ' + str(game_key) + ' victory could not be determined, removed from dict')
-            else:
-                self.states[game_key] = ret
+    # def wins(self):
+    #     for game_key in self.ids:
+    #         game = self.states[game_key]
+    #         ret = win_set(game)
+    #         if ret is None:
+    #             del self.states[game_key]
+    #             self.ids.remove(game_key)
+    #             print('game_id: ' + str(game_key) + ' victory could not be determined, removed from dict')
+    #         else:
+    #             self.states[game_key] = ret
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -156,17 +170,7 @@ class SipEnv(gym.Env):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
 
-    def actions(self, action):
-        if action == ACTION_BUY_A:
-            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
-                self.money -= self.bet_amt
-                self.eq_a += self.adj_a_odds
-                self.a_bet_count += 1
-        if action == ACTION_BUY_H:
-            if self.h_odds != 0 or self.h_bet_count < self.max_bets:
-                self.money -= self.bet_amt
-                self.eq_h += self.adj_h_odds
-                self.h_bet_count += 1
+
 
     def next(self):
         new_id = random.choice(self.ids)
@@ -181,9 +185,10 @@ class SipEnv(gym.Env):
     def reset(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
+
         self.money = 0
         self.eq_a = 0
-        self.eq_h = 0
+        self.eq_h = self.bet_amt * self.adj_h_odds - self.bet_amt
 
         state, done = self.state.next()
         return state
@@ -210,23 +215,25 @@ def eq_calc(odd):
         return abs(100/odd)
 
 
-def win_set(game):
-    away_win = 0
-    home_win = 0
-
-    a_win = game['a_win'].unique().tolist()
-    h_win = game['h_win'].unique().tolist()
-
-    for elt in a_win:
-        if elt == 1:
-            away_win = 1
-    for elt in h_win:
-        if elt == 1:
-            home_win = 1
-    if (away_win == 1 and home_win == 1) or (away_win == 0 and home_win == 0):
-        return None
-    elif away_win == 1:
-        game['real_win'] = 0
-    else:
-        game['real_win'] = 1
-    return game
+# def win_set(game):
+#     away_win = 0
+#     home_win = 0
+#
+#     a_win = game['a_win'].unique().tolist()
+#     h_win = game['h_win'].unique().tolist()
+#
+#     for elt in a_win:
+#         if elt == 1:
+#             away_win = 1
+#     for elt in h_win:
+#         if elt == 1:
+#             home_win = 1
+#     if (away_win == 1 and home_win == 1) or (away_win == 0 and home_win == 0):
+#         return None
+#     elif away_win == 1:
+#         game['a_win'] = 1
+#         game['h_win'] = 0
+#     else:
+#         game['h_win'] = 1
+#         game['a_win'] = 0
+#     return game
