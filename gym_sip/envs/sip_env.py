@@ -70,28 +70,24 @@ class SipEnv(gym.Env):
                     'a_hcap_tot': 'Int32',
                     'h_hcap_tot': 'Int32'
         }
-        self.df = None
-        self.read_csv()
+        self.df = read_csv(self.fn, self.headers)
         self.states = {}
         self.ids = []
-        self.chunk_df()
+        self.ids, self.states = chunk_df(self.df)
 
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
         self.a_bet_count = 0
 
         self.bet_amt = 100
+        self.a_bet_amt = 0
         self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
         self.adj_a_odds = 0
         self.adj_h_odds = 0
         self.eq_a = 0
-        self.eq_h = 0  # self.bet_amt * self.adj_h_odds - self.bet_amt
+        self.eq_h = 0
         self.a_odds = 0
         self.h_odds = 0
-
-        self.a_bet_amt = 0
-
         self.state = None
-
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
         self.action_space = spaces.Discrete(2)
 
@@ -114,7 +110,7 @@ class SipEnv(gym.Env):
     def actions(self, action):
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.a_bet_count < self.max_bets:
-                self.a_bet_amt = (self.eq_h * self.bet_amt ) / (self.adj_a_odds + 1)
+                self.a_bet_amt = (self.eq_h * self.bet_amt) / (self.adj_a_odds + 1)
                 self.money += self.a_bet_amt * self.adj_a_odds - self.bet_amt
                 self.a_bet_count += 1
                 print('a_bet_amt: ' + str(self.a_bet_amt))
@@ -137,15 +133,11 @@ class SipEnv(gym.Env):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
         self.get_odds()
+        self.a_bet_count = 0
         self.eq_a = 0
         self.eq_h = self.bet_amt * self.adj_h_odds
 
-    def read_csv(self):
-        raw = pd.read_csv(self.fn, usecols=self.headers)
-        raw = raw.dropna()
-        raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
 
-        self.df = raw.copy()
 
 
 
@@ -177,7 +169,13 @@ def eq_calc(odd):
         return abs(100/odd)
 
 
-    def chunk_df(self):
-        ids = self.df['game_id'].unique().tolist()
-        states = {key: val for key, val in self.df.groupby('game_id')}
-        return ids, states
+def chunk_df(df):
+    ids = df['game_id'].unique().tolist()
+    states = {key: val for key, val in df.groupby('game_id')}
+    return ids, states
+
+def read_csv(fn, headers):
+    raw = pd.read_csv(fn, usecols=headers)
+    raw = raw.dropna()
+    raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
+    return raw.copy()

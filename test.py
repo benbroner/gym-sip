@@ -12,6 +12,7 @@ for i in range(20000):
     s, r, d, m = env.step(random.randrange(0, env.action_space.n))
     print(str(r))
     plt.scatter(i, reward_sum, color='r', s=10, marker='o')
+    plt.scatter(i, env.money, color='b', s=10, marker='o')
     reward_sum += r
     if env.money <= 0:
         print('reset')
