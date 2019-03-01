@@ -153,10 +153,10 @@ class SipEnv(gym.Env):
     def new_game(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
+        self.a_bet_count = 0
 
     def update(self):
         self.get_odds()
-        self.a_bet_count = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet
         self.eq_h = self.h_bet_amt * eq_calc(self.init_h_odds)
 
