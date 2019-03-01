@@ -87,7 +87,7 @@ class SipEnv(gym.Env):
         self.a_bet_count = 0
         self.h_bet_count = 0
         self.bet_amt = 100
-        self.money = 0  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
+        self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
         self.bound = 16
         self.adj_a_odds = 0
         self.adj_h_odds = 0
@@ -134,20 +134,19 @@ class SipEnv(gym.Env):
     def next(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
-
+        self.get_odds()
         self.eq_a = 0
-        self.eq_h = self.bet_amt * self.adj_h_odds - self.bet_amt
-        self.money -= self.
+        self.eq_h = self.bet_amt * self.adj_h_odds
         state, done = self.state.next()
         return state
 
     def reset(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
-
-        self.money = 0
+        self.money = 10000
+        self.get_odds()
         self.eq_a = 0
-        self.eq_h = self.bet_amt * self.adj_h_odds - self.bet_amt
+        self.eq_h = self.bet_amt * self.adj_h_odds
 
         state, done = self.state.next()
         return state
