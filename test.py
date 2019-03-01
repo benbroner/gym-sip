@@ -18,7 +18,7 @@ for i in range(10000):
         print('reset')
         env.reset()
     print("tot: " + str(reward_sum))
-    print("MONEY: " + str(env.money))
+    print("money: " + str(env.money))
     if i % 100 == 0:
         print("i: " + str(i))
     if d == 1:

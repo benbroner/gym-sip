@@ -7,6 +7,8 @@ from sklearn.preprocessing import RobustScaler
 ACTION_SKIP = 0
 ACTION_BUY_A = 1
 
+AUM = 10000
+
 class SippyState:
     def __init__(self, game):
         self.game = game  # df for game
@@ -78,7 +80,7 @@ class SipEnv(gym.Env):
         self.a_bet_count = 0
         self.a_bet_amt = 0
         self.base_bet = 100
-        self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
+        self.money = AUM  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
         self.init_a_odds = 0
         self.init_h_odds = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet  # it bottoms out if just 0.05 * self.money
@@ -87,6 +89,7 @@ class SipEnv(gym.Env):
         self.eq_h = 0
         self.a_odds = 0
         self.h_odds = 0
+        self.reward_sum = 0
         self.state = None
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
         self.action_space = spaces.Discrete(2)
@@ -100,7 +103,9 @@ class SipEnv(gym.Env):
         if not done:
             self.get_odds()
         if done == 1 and self.a_bet_count == 0:
+            print('forgot to hedge')
             self.money -= self.h_bet_amt + self.a_bet_amt
+
         self.actions(action)
         reward = self.money - prev_portfolio
         return state, reward, done, None
@@ -115,10 +120,9 @@ class SipEnv(gym.Env):
                 print('a_bet_amt: ' + str(self.a_bet_amt))
                 print('init_a_odds: ' + str(self.init_a_odds) + ' | h_odds: ' + str(self.init_h_odds))
                 print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
-                
-                print('pot a_eq: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
-                
+                print('pot a_eq: ' + str(pot_a_eq) + ' | h_eq: ' + str(self.eq_h))
         if action == ACTION_SKIP:
+            self.money -= 5
             print('s')
 
     def next(self):
@@ -127,6 +131,7 @@ class SipEnv(gym.Env):
         return state
 
     def reset(self):
+        self.money = AUM
         self.set_state()
         state, done = self.state.next()
         return state
@@ -135,13 +140,14 @@ class SipEnv(gym.Env):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
         self.get_odds()
-        self.init_a_odds = self.a_odds
-        self.init_h_odds = self.h_odds
+        if self.h_odds == 0:
+            self.step(random.randrange(0, self.action_space.n))
+            self.init_a_odds = self.a_odds
+            self.init_h_odds = self.h_odds
         self.a_bet_count = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet
         self.eq_h = self.h_bet_amt * self.adj_h_odds
         self.money -= self.h_bet_amt
-        
 
     def get_odds(self):
         if self.state.a_odds() == 0:  # if the away team odds are 0, then it cannot buy, so we should just step
