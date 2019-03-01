@@ -137,11 +137,9 @@ class SipEnv(gym.Env):
         self.eq_a = 0
         self.eq_h = self.bet_amt * self.adj_h_odds
 
-
-
-
-
     def get_odds(self):
+        if self.state.a_odds() == 0:  # if the away team odds are 0, then it cannot buy, so we should just step
+            self.step(random.randrange(0, self.action_space.n))
         self.a_odds = self.state.a_odds()
         self.h_odds = self.state.h_odds()
         self.adj_a_odds = eq_calc(self.a_odds)

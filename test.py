@@ -10,16 +10,17 @@ reward_sum = 0
 
 for i in range(20000):
     s, r, d, m = env.step(random.randrange(0, env.action_space.n))
-    print(str(r))
+    print(str(r)+"reward")
     plt.scatter(i, reward_sum, color='r', s=10, marker='o')
     plt.scatter(i, env.money, color='b', s=10, marker='o')
     reward_sum += r
     if env.money <= 0:
         print('reset')
         env.reset()
+    print("tot: " + str(reward_sum))
+    print("MONEY: " + str(env.money))
     if i % 100 == 0:
-        print("tot: " + str(reward_sum))
-        print("MONEY: " + str(env.money))
+        print("i: " + str(i))
     if d == 1:
         env.next()
 plt.show()
