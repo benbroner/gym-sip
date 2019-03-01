@@ -152,6 +152,7 @@ class SipEnv(gym.Env):
         if self.init_a_odds == 0:
             self.init_a_odds = self.a_odds
         if self.init_h_odds == 0:
+            print('init_h_odds are zero, waiting to buy init position')
             self.init_h_odds = self.h_odds
             self.step(random.randrange(0, self.action_space.n))
 
@@ -174,8 +175,8 @@ class SipEnv(gym.Env):
             print('moneyline closed')
 
     def print_info(self):
-        print('a_bet_amt: ' + str(self.a_bet_amt))
-        print('init_a_odds: ' + str(self.init_a_odds) + ' | h_odds: ' + str(self.init_h_odds))
+        print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
+        print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
         print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
         print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h) + '\n\n')
 
