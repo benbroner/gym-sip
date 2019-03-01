@@ -10,8 +10,10 @@ ACTION_BUY_A = 1
 class SippyState:
     def __init__(self, game):
         self.game = game  # df for game
-        self.id = self.game['game_id'].iloc[0]
-        # if len()
+        self.ids = self.game['game_id'].unique()
+        if len(self.ids) > 1:
+            raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(self.ids))
+        self.id = self.ids[0]
         self.index = 0
         print("Imported data from {}".format(self.id))
 

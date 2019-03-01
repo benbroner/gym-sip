@@ -7,7 +7,7 @@ env.reset()
 
 reward_sum = 0
 
-for i in range(1000):
+for i in range(10000):
     s, r, d, m = env.step(random.randrange(0, env.action_space.n))
     print(str(r))
     reward_sum += r
