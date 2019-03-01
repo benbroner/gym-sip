@@ -49,7 +49,6 @@ class SipEnv(gym.Env):
 
     def __init__(self, file_name):
         self.fn = 'data/' + file_name + '.csv'
-        self.df = None
         self.headers = ['a_team', 'h_team', 'league', 'game_id',
                         'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
                         'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
@@ -71,7 +70,7 @@ class SipEnv(gym.Env):
                     'a_hcap_tot': 'Int32',
                     'h_hcap_tot': 'Int32'
         }
-
+        self.df = None
         self.read_csv()
         self.states = {}
         self.ids = []
@@ -85,7 +84,7 @@ class SipEnv(gym.Env):
         self.adj_a_odds = 0
         self.adj_h_odds = 0
         self.eq_a = 0
-        self.eq_h = 0 # self.bet_amt * self.adj_h_odds - self.bet_amt
+        self.eq_h = 0  # self.bet_amt * self.adj_h_odds - self.bet_amt
         self.a_odds = 0
         self.h_odds = 0
 
@@ -114,33 +113,32 @@ class SipEnv(gym.Env):
 
     def actions(self, action):
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 or self.a_bet_count < self.max_bets:
-                self.a_bet_amt = (self.eq_h * self.bet_amt) / (self.adj_a_odds + 1)
+            if self.a_odds != 0 and self.a_bet_count < self.max_bets:
+                self.a_bet_amt = (self.eq_h * self.bet_amt ) / (self.adj_a_odds + 1)
                 self.money += self.a_bet_amt * self.adj_a_odds - self.bet_amt
                 self.a_bet_count += 1
-                print('a')
+                print('a_bet_amt: ' + str(self.a_bet_amt))
+                print('away_buy: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
         if action == ACTION_SKIP:
+            self.money -= 500
             print('s')
 
     def next(self):
-        new_id = random.choice(self.ids)
-        self.state = SippyState(self.states[new_id])
-        self.get_odds()
-        self.eq_a = 0
-        self.eq_h = self.bet_amt * self.adj_h_odds
+        self.set_state()
         state, done = self.state.next()
         return state
 
     def reset(self):
+        self.set_state()
+        state, done = self.state.next()
+        return state
+
+    def set_state(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
-        self.money = 10000
         self.get_odds()
         self.eq_a = 0
         self.eq_h = self.bet_amt * self.adj_h_odds
-
-        state, done = self.state.next()
-        return state
 
     def read_csv(self):
         raw = pd.read_csv(self.fn, usecols=self.headers)
@@ -149,10 +147,7 @@ class SipEnv(gym.Env):
 
         self.df = raw.copy()
 
-    def chunk_df(self):
-        self.ids = self.df['game_id'].unique().tolist()
-        self.states = {key: val for key, val in self.df.groupby('game_id')}
-        # self.wins()
+
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -182,25 +177,7 @@ def eq_calc(odd):
         return abs(100/odd)
 
 
-# def win_set(game):
-#     away_win = 0
-#     home_win = 0
-#
-#     a_win = game['a_win'].unique().tolist()
-#     h_win = game['h_win'].unique().tolist()
-#
-#     for elt in a_win:
-#         if elt == 1:
-#             away_win = 1
-#     for elt in h_win:
-#         if elt == 1:
-#             home_win = 1
-#     if (away_win == 1 and home_win == 1) or (away_win == 0 and home_win == 0):
-#         return None
-#     elif away_win == 1:
-#         game['a_win'] = 1
-#         game['h_win'] = 0
-#     else:
-#         game['h_win'] = 1
-#         game['a_win'] = 0
-#     return game
+    def chunk_df(self):
+        ids = self.df['game_id'].unique().tolist()
+        states = {key: val for key, val in self.df.groupby('game_id')}
+        return ids, states
