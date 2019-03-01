@@ -79,17 +79,17 @@ class SipEnv(gym.Env):
         self.a_bet_amt = 0
         self.base_bet = 100
         self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
+        self.init_a_odds = 0
+        self.init_h_odds = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet  # it bottoms out if just 0.05 * self.money
         self.adj_a_odds = 0
         self.adj_h_odds = 0
-        self.eq_a = 0
         self.eq_h = 0
         self.a_odds = 0
         self.h_odds = 0
         self.state = None
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
         self.action_space = spaces.Discrete(2)
-
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(self.fn))
 
@@ -99,23 +99,25 @@ class SipEnv(gym.Env):
         state, done = self.state.next()
         if not done:
             self.get_odds()
-
+        if done == 1 and self.a_bet_count == 0:
+            self.money -= self.h_bet_amt + self.a_bet_amt
         self.actions(action)
-
         reward = self.money - prev_portfolio
-
         return state, reward, done, None
 
     def actions(self, action):
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.a_bet_count < self.max_bets:
-                self.a_bet_amt = (self.eq_h * self.bet_amt) / (self.adj_a_odds + 1)
+                self.a_bet_amt = (self.eq_h + self.h_bet_amt) / (self.adj_a_odds + 1)
                 pot_a_eq = self.a_bet_amt * self.adj_a_odds
-                self.money += pot_a_eq - self.bet_amt
+                self.money += pot_a_eq - self.a_bet_amt
                 self.a_bet_count += 1
                 print('a_bet_amt: ' + str(self.a_bet_amt))
+                print('init_a_odds: ' + str(self.init_a_odds) + ' | h_odds: ' + str(self.init_h_odds))
                 print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+                
                 print('pot a_eq: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+                
         if action == ACTION_SKIP:
             print('s')
 
@@ -133,9 +135,13 @@ class SipEnv(gym.Env):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
         self.get_odds()
+        self.init_a_odds = self.a_odds
+        self.init_h_odds = self.h_odds
         self.a_bet_count = 0
-        self.eq_a = 0
-        self.eq_h = self.bet_amt * self.adj_h_odds
+        self.h_bet_amt = (0.05 * self.money) + self.base_bet
+        self.eq_h = self.h_bet_amt * self.adj_h_odds
+        self.money -= self.h_bet_amt
+        
 
     def get_odds(self):
         if self.state.a_odds() == 0:  # if the away team odds are 0, then it cannot buy, so we should just step
@@ -145,7 +151,6 @@ class SipEnv(gym.Env):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
 
-    def
     def _render(self, mode='human', close=False):
         pass
 
@@ -155,8 +160,6 @@ def act_name(act):
         return 'SKIP'
     elif act == 1:
         return 'BUY AWAY'
-    # elif act == 2:
-    #     return 'BUY HOME'
 
 
 def eq_calc(odd):
@@ -172,6 +175,7 @@ def chunk_df(df):
     ids = df['game_id'].unique().tolist()
     states = {key: val for key, val in df.groupby('game_id')}
     return ids, states
+
 
 def read_csv(fn, headers):
     raw = pd.read_csv(fn, usecols=headers)
