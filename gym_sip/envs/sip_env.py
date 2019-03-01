@@ -71,20 +71,21 @@ class SipEnv(gym.Env):
                     'a_hcap_tot': 'Int32',
                     'h_hcap_tot': 'Int32'
         }
+
         self.read_csv()
         self.states = {}
         self.ids = []
         self.chunk_df()
+
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
         self.a_bet_count = 0
-        self.h_bet_count = 0
+
         self.bet_amt = 100
         self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
-        self.bound = 16
         self.adj_a_odds = 0
         self.adj_h_odds = 0
         self.eq_a = 0
-        self.eq_h = self.bet_amt * self.adj_h_odds - self.bet_amt
+        self.eq_h = 0 # self.bet_amt * self.adj_h_odds - self.bet_amt
         self.a_odds = 0
         self.h_odds = 0
 
