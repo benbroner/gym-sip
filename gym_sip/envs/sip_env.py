@@ -27,11 +27,8 @@ class SippyState:
     def next(self):
         if self.index >= len(self.game) - 1:
             return None, True
-
         values = self.game.iloc[self.index, 0:]
-
         self.index += 1
-
         return values, False
 
     def shape(self):
@@ -43,9 +40,6 @@ class SippyState:
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
 
-    # def a_win(self):
-    #     return int(self.game.iloc[self.index, 6])
-
     def num_games(self):
         return len(self.game['game_id'].unique())
 
@@ -54,10 +48,8 @@ class SipEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, file_name):
-
         self.fn = 'data/' + file_name + '.csv'
         self.df = None
-
         self.headers = ['a_team', 'h_team', 'league', 'game_id',
                         'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
                         'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
@@ -109,9 +101,7 @@ class SipEnv(gym.Env):
     def step(self, action):
         assert self.action_space.contains(action)
         prev_portfolio = self.money
-
         state, done = self.state.next()
-
         if not done:
             self.get_odds()
 
