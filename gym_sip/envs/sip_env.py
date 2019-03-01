@@ -9,6 +9,7 @@ ACTION_BUY_A = 1
 
 AUM = 10000
 
+
 class SippyState:
     def __init__(self, game):
         self.game = game  # df for game
@@ -101,9 +102,10 @@ class SipEnv(gym.Env):
         assert self.action_space.contains(action)
         prev_portfolio = self.money
         state, done = self.state.next()
+
         if not done:
-            self.get_odds()
-            self.get_adj_odds()
+            self.update()
+
         if done == 1 and self.a_bet_count == 0:
             print('forgot to hedge')
             self.money -= self.h_bet_amt + self.a_bet_amt
@@ -113,11 +115,12 @@ class SipEnv(gym.Env):
         return state, reward, done, None
 
     def actions(self, action):
+        sum = self.init_h_odds + self.a_odds
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.a_bet_count < self.max_bets:
+            if self.a_odds != 0 and self.a_bet_count < self.max_bets and sum > 0:
                 self.a_bet_amt = (self.eq_h + self.h_bet_amt) / (self.adj_a_odds + 1)
                 self.pot_a_eq = self.a_bet_amt * self.adj_a_odds
-                self.money += self.pot_a_eq - self.a_bet_amt
+                self.money += self.pot_a_eq - self.h_bet_amt
                 self.a_bet_count += 1
                 self.print_info()
         if action == ACTION_SKIP:
@@ -145,13 +148,11 @@ class SipEnv(gym.Env):
         self.state = SippyState(self.states[new_id])
 
     def update(self):
-        self.get_odds()
-        self.get_adj_odds()
-        self.no_odds()
+        self.odds_step()
 
         if self.init_a_odds == 0:
             self.init_a_odds = self.a_odds
-        if self.init_h_odds == 0:
+        while self.init_h_odds == 0:
             print('init_h_odds are zero, waiting to buy init position')
             self.init_h_odds = self.h_odds
             self.step(random.randrange(0, self.action_space.n))
@@ -160,6 +161,11 @@ class SipEnv(gym.Env):
         self.h_bet_amt = (0.05 * self.money) + self.base_bet
         self.eq_h = self.h_bet_amt * eq_calc(self.init_h_odds)
         self.money -= self.h_bet_amt
+
+    def odds_step(self):
+        self.get_odds()
+        self.get_adj_odds()
+        self.no_odds()
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -176,12 +182,11 @@ class SipEnv(gym.Env):
             self.init_h_odds = self.h_odds
             self.step(random.randrange(0, self.action_space.n))
 
-
     def print_info(self):
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
         print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
         print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
-        print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h) + '\n\n')
+        print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
 
     def _render(self, mode='human', close=False):
         pass
