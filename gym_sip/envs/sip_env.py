@@ -171,8 +171,11 @@ class SipEnv(gym.Env):
 
     def no_odds(self):
         if self.a_odds == 0 and self.h_odds == 0:
-            self.step(random.randrange(0, self.action_space.n))
             print('moneyline closed')
+            self.init_a_odds = self.a_odds
+            self.init_h_odds = self.h_odds
+            self.step(random.randrange(0, self.action_space.n))
+
 
     def print_info(self):
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
