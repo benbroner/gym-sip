@@ -14,9 +14,9 @@ class SippyState:
         # print(game)
         self.game = game  # df for game
         # self.win = game['a_win'].unique()[0]
+        self.id = self.game['game_id'].iloc[0]
 
-        # print(str(self.win))
-        self.id = self.game.iloc[:, 2].unique().tolist()  # first row, second column
+        # self.id = self.game.iloc[:, 2].unique().tolist()  # first row, second column
         self.index = 0
 
         print("Imported data from {}".format(self.id))
@@ -95,7 +95,7 @@ class SipEnv(gym.Env):
         self.bound = 16
 
         self.eq_a = 0
-        self.eq_h = 0
+        self.eq_h = self.bet_amt * self.adj_h_odds - self.bet_amt
         self.a_odds = 0
         self.h_odds = 0
         self.adj_a_odds = 0
@@ -135,6 +135,9 @@ class SipEnv(gym.Env):
                 self.a_bet_amt = (self.eq_h * self.bet_amt) / (self.adj_a_odds + 1)
                 self.money += self.a_bet_amt * self.adj_a_odds - self.bet_amt
                 self.a_bet_count += 1
+                print('a')
+        if action == ACTION_SKIP:
+            print('s')
         # if action == ACTION_BUY_H:
         #     if self.h_odds != 0 or self.h_bet_count < self.max_bets:
         #         self.money -= self.bet_amt
@@ -153,31 +156,18 @@ class SipEnv(gym.Env):
         self.states = {key: val for key, val in self.df.groupby('game_id')}
         # self.wins()
 
-    # def wins(self):
-    #     for game_key in self.ids:
-    #         game = self.states[game_key]
-    #         ret = win_set(game)
-    #         if ret is None:
-    #             del self.states[game_key]
-    #             self.ids.remove(game_key)
-    #             print('game_id: ' + str(game_key) + ' victory could not be determined, removed from dict')
-    #         else:
-    #             self.states[game_key] = ret
-
     def get_odds(self):
         self.a_odds = self.state.a_odds()
         self.h_odds = self.state.h_odds()
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
 
-
-
     def next(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
 
         self.eq_a = 0
-        self.eq_h = 0
+        self.eq_h = self.bet_amt * self.adj_h_odds - self.bet_amt
 
         state, done = self.state.next()
         return state
@@ -202,8 +192,8 @@ def act_name(act):
         return 'SKIP'
     elif act == 1:
         return 'BUY AWAY'
-    elif act == 2:
-        return 'BUY HOME'
+    # elif act == 2:
+    #     return 'BUY HOME'
 
 
 def eq_calc(odd):
