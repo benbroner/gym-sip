@@ -8,12 +8,13 @@ env.reset()
 
 reward_sum = 0
 
-for i in range(10000):
+for i in range(30000):
     if i % 100 == 0:
         print("i: " + str(i))
     s, r, d, m = env.step(random.randrange(0, env.action_space.n))
     reward_sum += r
 
+    print('num a_bets: ' + str(env.a_bet_count))
     print('a_odds: ' + str(env.state.a_odds()) + ' | h_odds: ' + str(env.state.h_odds()))
     print('reward: ' + str(r))
     print("money: " + str(env.money) + '\n\n')

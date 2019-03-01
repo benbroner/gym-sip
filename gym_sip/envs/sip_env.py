@@ -18,11 +18,18 @@ class SippyState:
             raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(self.ids))
         self.id = self.ids[0]
         self.index = 0
+        self.init_h_odds()
+        self.first_h_odd = self.h_odds()
+
         print("Imported data from {}".format(self.id))
 
     def fit_data(self):
         transformer = RobustScaler().fit(self.game)
         transformer.transform(self.game)
+
+    def init_h_odds(self):
+        while self.h_odds() == 0:
+            self.next()
 
     def reset(self):
         self.index = 0
@@ -32,7 +39,13 @@ class SippyState:
             return None, True
         values = self.game.iloc[self.index, 0:]
         self.index += 1
+        self.no_odds()
         return values, False
+
+    def no_odds(self):
+        while self.a_odds() == 0 and self.h_odds() == 0:
+            print('moneyline closed')
+            self.index += 1
 
     def shape(self):
         return self.game.shape
@@ -93,7 +106,7 @@ class SipEnv(gym.Env):
         self.reward_sum = 0
         self.pot_a_eq = 0
         self.state = None
-        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
+        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(self.df.shape[1], ))
         self.action_space = spaces.Discrete(2)
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(self.fn))
@@ -124,68 +137,39 @@ class SipEnv(gym.Env):
                 self.a_bet_count += 1
                 self.print_info()
         if action == ACTION_SKIP:
-            self.money -= 25
             print('s')
 
     def next(self):
         self.new_game()
         self.update()
-
         state, done = self.state.next()
+        self.init_h_odds = self.state.first_h_odd
         return state
 
     def reset(self):
         self.money = AUM
-
-        self.new_game()
-        self.update()
-
-        state, done = self.state.next()
-        return state
+        self.next()
 
     def new_game(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
 
     def update(self):
-        self.odds_step()
-
-        if self.init_a_odds == 0:
-            self.init_a_odds = self.a_odds
-        while self.init_h_odds == 0:
-            print('init_h_odds are zero, waiting to buy init position')
-            self.init_h_odds = self.h_odds
-            self.step(random.randrange(0, self.action_space.n))
-
+        self.get_odds()
         self.a_bet_count = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet
         self.eq_h = self.h_bet_amt * eq_calc(self.init_h_odds)
-        self.money -= self.h_bet_amt
-
-    def odds_step(self):
-        self.get_odds()
-        self.get_adj_odds()
-        self.no_odds()
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
         self.h_odds = self.state.h_odds()
-
-    def get_adj_odds(self):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
-
-    def no_odds(self):
-        if self.a_odds == 0 and self.h_odds == 0:
-            print('moneyline closed')
-            self.init_a_odds = self.a_odds
-            self.init_h_odds = self.h_odds
-            self.step(random.randrange(0, self.action_space.n))
 
     def print_info(self):
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
         print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
-        print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+        # print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
         print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
 
     def _render(self, mode='human', close=False):
