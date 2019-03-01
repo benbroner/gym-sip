@@ -13,6 +13,8 @@ for i in range(10000):
     print('reward: ' + str(r))
     plt.scatter(i, reward_sum, color='r', s=10, marker='o')
     plt.scatter(i, env.money, color='b', s=10, marker='o')
+    if r != -25:
+        plt.scatter(i, r, color='g', s=10, marker='o')
     reward_sum += r
     if env.money <= 0:
         print('reset')

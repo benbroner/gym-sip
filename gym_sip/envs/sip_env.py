@@ -90,6 +90,7 @@ class SipEnv(gym.Env):
         self.a_odds = 0
         self.h_odds = 0
         self.reward_sum = 0
+        self.pot_a_eq = 0
         self.state = None
         self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(537, ))
         self.action_space = spaces.Discrete(2)
@@ -102,6 +103,7 @@ class SipEnv(gym.Env):
         state, done = self.state.next()
         if not done:
             self.get_odds()
+            self.get_adj_odds()
         if done == 1 and self.a_bet_count == 0:
             print('forgot to hedge')
             self.money -= self.h_bet_amt + self.a_bet_amt
@@ -114,48 +116,68 @@ class SipEnv(gym.Env):
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.a_bet_count < self.max_bets:
                 self.a_bet_amt = (self.eq_h + self.h_bet_amt) / (self.adj_a_odds + 1)
-                pot_a_eq = self.a_bet_amt * self.adj_a_odds
-                self.money += pot_a_eq - self.a_bet_amt
+                self.pot_a_eq = self.a_bet_amt * self.adj_a_odds
+                self.money += self.pot_a_eq - self.a_bet_amt
                 self.a_bet_count += 1
-                print('a_bet_amt: ' + str(self.a_bet_amt))
-                print('init_a_odds: ' + str(self.init_a_odds) + ' | h_odds: ' + str(self.init_h_odds))
-                print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
-                print('pot a_eq: ' + str(pot_a_eq) + ' | h_eq: ' + str(self.eq_h))
+                self.print_info()
         if action == ACTION_SKIP:
-            self.money -= 5
+            self.money -= 25
             print('s')
 
     def next(self):
-        self.set_state()
+        self.new_game()
+        self.update()
+
         state, done = self.state.next()
         return state
 
     def reset(self):
         self.money = AUM
-        self.set_state()
+
+        self.new_game()
+        self.update()
+
         state, done = self.state.next()
         return state
 
-    def set_state(self):
+    def new_game(self):
         new_id = random.choice(self.ids)
         self.state = SippyState(self.states[new_id])
+
+    def update(self):
         self.get_odds()
-        if self.h_odds == 0:
-            self.step(random.randrange(0, self.action_space.n))
+        self.get_adj_odds()
+        self.no_odds()
+
+        if self.init_a_odds == 0:
             self.init_a_odds = self.a_odds
+        if self.init_h_odds == 0:
             self.init_h_odds = self.h_odds
+            self.step(random.randrange(0, self.action_space.n))
+
         self.a_bet_count = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet
-        self.eq_h = self.h_bet_amt * self.adj_h_odds
+        self.eq_h = self.h_bet_amt * eq_calc(self.init_h_odds)
         self.money -= self.h_bet_amt
 
     def get_odds(self):
-        if self.state.a_odds() == 0:  # if the away team odds are 0, then it cannot buy, so we should just step
-            self.step(random.randrange(0, self.action_space.n))
         self.a_odds = self.state.a_odds()
         self.h_odds = self.state.h_odds()
+
+    def get_adj_odds(self):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
+
+    def no_odds(self):
+        if self.a_odds == 0 and self.h_odds == 0:
+            self.step(random.randrange(0, self.action_space.n))
+            print('moneyline closed')
+
+    def print_info(self):
+        print('a_bet_amt: ' + str(self.a_bet_amt))
+        print('init_a_odds: ' + str(self.init_a_odds) + ' | h_odds: ' + str(self.init_h_odds))
+        print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+        print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h) + '\n\n')
 
     def _render(self, mode='human', close=False):
         pass
