@@ -74,13 +74,12 @@ class SipEnv(gym.Env):
         self.states = {}
         self.ids = []
         self.ids, self.states = chunk_df(self.df)
-
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
         self.a_bet_count = 0
-
-        self.bet_amt = 100
         self.a_bet_amt = 0
+        self.base_bet = 100
         self.money = 10000  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
+        self.h_bet_amt = (0.05 * self.money) + self.base_bet  # it bottoms out if just 0.05 * self.money
         self.adj_a_odds = 0
         self.adj_h_odds = 0
         self.eq_a = 0
@@ -111,12 +110,13 @@ class SipEnv(gym.Env):
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.a_bet_count < self.max_bets:
                 self.a_bet_amt = (self.eq_h * self.bet_amt) / (self.adj_a_odds + 1)
-                self.money += self.a_bet_amt * self.adj_a_odds - self.bet_amt
+                pot_a_eq = self.a_bet_amt * self.adj_a_odds
+                self.money += pot_a_eq - self.bet_amt
                 self.a_bet_count += 1
                 print('a_bet_amt: ' + str(self.a_bet_amt))
-                print('away_buy: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+                print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+                print('pot a_eq: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
         if action == ACTION_SKIP:
-            self.money -= 500
             print('s')
 
     def next(self):
@@ -145,6 +145,7 @@ class SipEnv(gym.Env):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
 
+    def
     def _render(self, mode='human', close=False):
         pass
 
