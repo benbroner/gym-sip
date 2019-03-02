@@ -12,12 +12,17 @@ AUM = 10000
 
 class SippyState:
     def __init__(self, game):
+
         self.game = game  # df for game
+        self.len = len(game)
+        print("game has: " + str(self.len) + "lines")
+
         self.ids = self.game['game_id'].unique()
         if len(self.ids) > 1:
             raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(self.ids))
         self.id = self.ids[0]
-        self.index = 0
+
+        self.index = len(self.game - 1)
         self.first_h_odd = self.h_odds()
         self.first_a_odd = self.a_odds()
         self.init_h_odds()
@@ -30,16 +35,16 @@ class SippyState:
 
     def init_h_odds(self):
         while self.h_odds() == 0 and self.first_h_odd == 0:
-            self.index += 1
+            self.index -= 1
         self.first_h_odd = self.h_odds()
 
     def init_a_odds(self):
         while self.a_odds() == 0 and self.first_a_odd == 0:
-            self.index += 1
+            self.index -= 1
         self.first_a_odd = self.a_odds()
 
     def reset(self):
-        self.index = 0
+        self.index = len(self.game - 1)
 
     def next(self):
         if self.index >= len(self.game) - 1:
@@ -57,8 +62,7 @@ class SippyState:
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
 
-    def num_games(self):
-        return len(self.game['game_id'].unique())
+
 
 
 class SipEnv(gym.Env):
@@ -88,6 +92,8 @@ class SipEnv(gym.Env):
                     'h_hcap_tot': 'Int32'
         }
         self.df, self.teams = read_csv(self.fn, self.headers)
+        self.num_games = self.num_games
+
         self.states = {}
         self.id = 0
         self.ids = []
@@ -115,7 +121,6 @@ class SipEnv(gym.Env):
             raise NameError('Invalid empty directory {}'.format(self.fn))
 
     def step(self, action):
-        print('index in game: ' + str(self.state.index))
         assert self.action_space.contains(action)
         prev_portfolio = self.money
         state, done = self.state.next()
@@ -129,6 +134,7 @@ class SipEnv(gym.Env):
 
         self.actions(action)
         reward = self.money - prev_portfolio
+        self.reward_sum += reward
         return state, reward, done, None
 
     def actions(self, action):
@@ -139,7 +145,7 @@ class SipEnv(gym.Env):
                 self.pot_a_eq = self.a_bet_amt * self.adj_a_odds
                 self.money += self.pot_a_eq - self.h_bet_amt
                 self.a_bet_count += 1
-                self.print_info()
+                self.print_bet()
         if action == ACTION_SKIP:
             print('s')
 
@@ -170,12 +176,19 @@ class SipEnv(gym.Env):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
 
-    def print_info(self):
-        print(self.teams[self.id])
+    def print_bet(self):
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
         print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
-        # print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
         print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
+
+    def print_step(self):
+        print('index in game: ' + str(self.state.index))
+        print('teams: ' + self.teams[self.id])
+
+    def num_games(self):
+        num = len(self.df['game_id'].unique())
+        print(str(num))
+        return num
 
     def _render(self, mode='human', close=False):
         pass
@@ -205,9 +218,7 @@ def chunk_df(df):
 
 
 def team_dict(df):
-    print(df)
     teams = df.iloc[:, 1:4]
-    print(teams)
     teams_dict = {key: val for key, val in teams.groupby('game_id')}
     return teams_dict
 
