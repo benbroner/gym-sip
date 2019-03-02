@@ -90,14 +90,15 @@ class SipEnv(gym.Env):
                     'h_hcap_tot': 'Int32'
         }
         self.df, self.teams = read_csv(self.fn, self.headers)
-        self.num_games = self.num_games
-
+        self.num_games = num_games(self.df)
+        print(str(num_games))
         self.states = {}
         self.id = 0
         self.ids = []
         self.ids, self.states = chunk_df(self.df)
-        self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
+        self.max_bets = 5  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
         self.a_bet_count = 0
+        self.h_bet_count = 0
         self.a_bet_amt = 0
         self.base_bet = 100
         self.money = AUM  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
@@ -108,20 +109,21 @@ class SipEnv(gym.Env):
         self.adj_h_odds = 0
         self.tot_bets = 0
         self.eq_h = 0
+        self.eq_a = 0
         self.a_odds = 0
         self.h_odds = 0
         self.reward_sum = 0
         self.pot_a_eq = 0
-        self.pot_h_eq
+        self.pot_h_eq = 0
         self.state = None
         self.last_bet = None
         self.observation_space = spaces.Box(low=-100000000., high=100000000., shape=(self.df.shape[1], ))
-        self.action_space = spaces.Discrete(2)
+        self.action_space = spaces.Discrete(3)
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(self.fn))
 
     def step(self, action):
-        self.print_step()
+
         assert self.action_space.contains(action)
         prev_portfolio = self.money
         state, done = self.state.next()
@@ -129,9 +131,9 @@ class SipEnv(gym.Env):
         if not done:
             self.update()
 
-        if done == 1 and self.a_bet_count == 0:
+        if done == 1:
             print('forgot to hedge')
-            self.money -= self.h_bet_amt + self.a_bet_amt
+            self.money -= self.h_bet_amt + self.a_bet_amt # sum bets made
 
         self.actions(action)
         reward = self.money - prev_portfolio
@@ -141,6 +143,7 @@ class SipEnv(gym.Env):
     def actions(self, action):
         sum_for_a = self.init_h_odds + self.a_odds
         sum_for_h = self.init_a_odds + self.h_odds
+
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
                 if self.last_bet == ACTION_BUY_A:
@@ -151,8 +154,10 @@ class SipEnv(gym.Env):
                 self.money += self.pot_a_eq - self.h_bet_amt
                 self.a_bet_count += 1
                 self.tot_bets += 1
+                self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
+                print('.')
 
         if action == ACTION_BUY_H:
             if self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
@@ -164,8 +169,10 @@ class SipEnv(gym.Env):
                 self.money += self.pot_h_eq - self.a_bet_amt
                 self.h_bet_count += 1
                 self.tot_bets += 1
+                self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
+                print('..')
         if action == ACTION_SKIP:
             print('s')
 
@@ -173,6 +180,7 @@ class SipEnv(gym.Env):
         self.id = random.choice(self.ids)
         self.state = SippyState(self.states[self.id])
         self.a_bet_count = 0
+        self.h_bet_count = 0
 
     def next(self):
         self.new_game()
@@ -189,7 +197,9 @@ class SipEnv(gym.Env):
     def update(self):
         self.get_odds()
         self.h_bet_amt = (0.05 * self.money) + self.base_bet
+        self.a_bet_amt = self.h_bet_amt
         self.eq_h = self.h_bet_amt * eq_calc(self.init_h_odds)
+        self.eq_a = self.a_bet_amt * eq_calc(self.init_a_odds)
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
@@ -198,19 +208,18 @@ class SipEnv(gym.Env):
         self.adj_h_odds = eq_calc(self.h_odds)
 
     def print_bet(self, action):
+        print(act_name(action))
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
         print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
         print('eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
-        print(act_name(action))
+        print('a_bet_count: ' + str(self.a_bet_count) + ' | h_bet_count: ' + str(self.h_bet_count))
+        print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
+
 
     def print_step(self):
         print('index in game: ' + str(self.state.index))
-        print('teams: ' + self.teams[self.id])
-
-    def num_games(self):
-        num = len(self.df['game_id'].unique())
-        print(str(num))
-        return num
+        print('a teams: ' + str(self.teams[self.id]['a_team'].iloc[0]) +
+              ' | h_team ' + str(self.teams[self.id]['h_team'].iloc[0]))
 
     def _render(self, mode='human', close=False):
         pass
@@ -244,6 +253,7 @@ def chunk_df(df):
 def team_dict(df):
     teams = df.iloc[:, 1:4]
     teams_dict = {key: val for key, val in teams.groupby('game_id')}
+    # print(teams_dict['a_team'])
     return teams_dict
 
 
@@ -253,3 +263,9 @@ def read_csv(fn, headers):
     teams = team_dict(raw)
     raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
     return raw.copy(), teams
+
+
+def num_games(df):
+    num = len(df['game_id'].unique())
+    print(str(num))
+    return num
