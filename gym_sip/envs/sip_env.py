@@ -43,7 +43,7 @@ class SippyState:
     def init_a_odds(self):
         i = self.game_len - 1
         while int(self.game.iloc[i, 9]) == 0 and self.first_a_odd == 0:
-            self.index -= 1
+            i -= 1
         self.first_a_odd = int(self.game.iloc[i, 10])
 
     def reset(self):
