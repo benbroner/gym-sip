@@ -139,10 +139,10 @@ class SipEnv(gym.Env):
 
         if done == 1 and self.h_bet_count > self.a_bet_count:
             print('forgot to hedge')
-            self.money -= self.init_h_amt
+            self.money -= self.init_h_amt + self.pot_a_eq
         if done == 1 and self.h_bet_count < self.a_bet_count:
             print('forgot to hedge')
-            self.money -= self.init_a_amt
+            self.money -= self.init_a_amt + self.pot_h_eq
 
         self.actions(action)
         reward = self.money - prev_portfolio
@@ -154,7 +154,7 @@ class SipEnv(gym.Env):
         sum_for_h = self.init_a_odds + self.h_odds  # cant be zero
 
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.h_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
+            if self.a_odds != 0 and self.h_odds != 0 and self.a_bet_count < self.max_bets:
                 if self.last_bet == ACTION_BUY_A:
                     print('cant repeat bets, must hedge')
                     return
@@ -163,12 +163,13 @@ class SipEnv(gym.Env):
                 self.money += self.pot_a_eq
                 self.a_bet_count += 1
                 self.tot_bets += 1
+                self.new_pair()
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
-                self.new_pair()
+
         if action == ACTION_BUY_H:
-            if self.a_odds != 0 and self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
+            if self.a_odds != 0 and self.h_odds != 0 and self.h_bet_count < self.max_bets:
                 if self.last_bet == ACTION_BUY_H:
                     print('cant repeat bets, must hedge')
                     return
@@ -177,10 +178,10 @@ class SipEnv(gym.Env):
                 self.money += self.pot_h_eq
                 self.h_bet_count += 1
                 self.tot_bets += 1
+                self.new_pair()
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
-                self.new_pair()
 
         if action == ACTION_SKIP:
             print('s')
@@ -216,6 +217,7 @@ class SipEnv(gym.Env):
             self.init_h_odds = self.h_odds
             self.init_a_amt = self.a_bet_amt
             self.init_h_amt = self.h_bet_amt
+            print(str(self.init_h_odds))
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
