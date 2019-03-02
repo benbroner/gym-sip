@@ -26,6 +26,7 @@ class SippyState:
         self.first_h_odd = self.h_odds()
         self.first_a_odd = self.a_odds()
         self.init_h_odds()
+        self.init_a_odds()
 
         print("Imported data from {}".format(self.id))
 
