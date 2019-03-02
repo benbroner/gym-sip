@@ -137,12 +137,17 @@ class SipEnv(gym.Env):
         if not done:
             self.update()
 
-        if done == 1 and self.h_bet_count > self.a_bet_count:
-            print('forgot to hedge')
-            self.money -= self.init_h_amt + self.pot_a_eq
-        if done == 1 and self.h_bet_count < self.a_bet_count:
-            print('forgot to hedge')
-            self.money -= self.init_a_amt + self.pot_h_eq
+        if done == 1:
+            print('game over')
+            print('h: ' + str(self.h_bet_count) + ' a: ' + str(self.a_bet_count))
+            if self.h_bet_count < self.a_bet_count:
+                print('forgot to hedge')
+                self.money -= self.init_a_amt + self.pot_h_eq
+            elif self.h_bet_count > self.a_bet_count:
+                print('forgot to hedge')
+                self.money -= self.init_h_amt + self.pot_a_eq
+            else:
+                self.money -= self.init_h_odds
 
         self.actions(action)
         reward = self.money - prev_portfolio
@@ -152,6 +157,10 @@ class SipEnv(gym.Env):
     def actions(self, action):
         sum_for_a = self.init_h_odds + self.a_odds
         sum_for_h = self.init_a_odds + self.h_odds  # cant be zero
+
+        if action == ACTION_SKIP:
+            print('s')
+            return
 
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.h_odds != 0 and self.a_bet_count < self.max_bets:
@@ -183,8 +192,7 @@ class SipEnv(gym.Env):
                 self.print_bet(action)
                 self.last_bet = action
 
-        if action == ACTION_SKIP:
-            print('s')
+
 
     def new_game(self):
         self.id = random.choice(self.ids)
