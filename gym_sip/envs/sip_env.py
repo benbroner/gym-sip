@@ -25,8 +25,8 @@ class SippyState:
         self.index = self.game_len - 1
         self.first_h_odd = self.h_odds()
         self.first_a_odd = self.a_odds()
-        self.init_h_odds()
-        self.init_a_odds()
+        self.init_pos_a = self.init_a_odds()
+        self.init_pos_h = self.init_h_odds()
 
         print("Imported data from {}".format(self.id))
 
@@ -39,12 +39,14 @@ class SippyState:
         while int(self.game.iloc[i, 10]) == 0 and self.first_h_odd == 0:
             i -= 1
         self.first_h_odd = int(self.game.iloc[i, 10])
+        return i
 
     def init_a_odds(self):
         i = self.game_len - 1
         while int(self.game.iloc[i, 9]) == 0 and self.first_a_odd == 0:
             i -= 1
         self.first_a_odd = int(self.game.iloc[i, 9])
+        return i
 
     def reset(self):
         self.index = len(self.game - 1)
@@ -159,6 +161,8 @@ class SipEnv(gym.Env):
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
+                if self.tot_bets % 2 == 1:
+                    self.money -= self.h_bet_amt
 
         if action == ACTION_BUY_H:
             if self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
@@ -173,6 +177,8 @@ class SipEnv(gym.Env):
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
+                if self.tot_bets % 2 == 1:
+                    self.money -= self.a_bet_amt
         if action == ACTION_SKIP:
             print('s')
 
@@ -214,7 +220,6 @@ class SipEnv(gym.Env):
         print('eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
         print('a_bet_count: ' + str(self.a_bet_count) + ' | h_bet_count: ' + str(self.h_bet_count))
         print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
-
 
     def print_step(self):
         print('index in game: ' + str(self.state.index))
