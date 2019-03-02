@@ -14,15 +14,15 @@ class SippyState:
     def __init__(self, game):
 
         self.game = game  # df for game
-        self.len = len(game)
-        print("game has: " + str(self.len) + "lines")
+        self.game_len = len(game)
+        print("game has: " + str(self.game_len) + " lines")
 
         self.ids = self.game['game_id'].unique()
         if len(self.ids) > 1:
             raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(self.ids))
         self.id = self.ids[0]
 
-        self.index = len(self.game - 1)
+        self.index = self.game_len - 1
         self.first_h_odd = self.h_odds()
         self.first_a_odd = self.a_odds()
         self.init_h_odds()
@@ -47,10 +47,10 @@ class SippyState:
         self.index = len(self.game - 1)
 
     def next(self):
-        if self.index >= len(self.game) - 1:
+        if self.index < 0:
             return None, True
         values = self.game.iloc[self.index, 0:]
-        self.index += 1
+        self.index -= 1
         return values, False
 
     def shape(self):
