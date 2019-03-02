@@ -121,6 +121,7 @@ class SipEnv(gym.Env):
             raise NameError('Invalid empty directory {}'.format(self.fn))
 
     def step(self, action):
+        self.print_step()
         assert self.action_space.contains(action)
         prev_portfolio = self.money
         state, done = self.state.next()
