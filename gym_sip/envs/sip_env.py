@@ -6,7 +6,7 @@ from sklearn.preprocessing import RobustScaler
 
 ACTION_SKIP = 0
 ACTION_BUY_A = 1
-
+ACTION_BUY_H = 2
 AUM = 10000
 
 
@@ -106,11 +106,13 @@ class SipEnv(gym.Env):
         self.h_bet_amt = (0.05 * self.money) + self.base_bet  # it bottoms out if just 0.05 * self.money
         self.adj_a_odds = 0
         self.adj_h_odds = 0
+        self.tot_bets = 0
         self.eq_h = 0
         self.a_odds = 0
         self.h_odds = 0
         self.reward_sum = 0
         self.pot_a_eq = 0
+        self.pot_h_eq
         self.state = None
         self.last_bet = None
         self.observation_space = spaces.Box(low=-100000000., high=100000000., shape=(self.df.shape[1], ))
@@ -137,14 +139,33 @@ class SipEnv(gym.Env):
         return state, reward, done, None
 
     def actions(self, action):
-        sum = self.init_h_odds + self.a_odds
+        sum_for_a = self.init_h_odds + self.a_odds
+        sum_for_h = self.init_a_odds + self.h_odds
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.a_bet_count < self.max_bets and sum > 0:
+            if self.a_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
+                if self.last_bet == ACTION_BUY_A:
+                    print('cant repeat bets, must hedge')
+                    return
                 self.a_bet_amt = (self.eq_h + self.h_bet_amt) / (self.adj_a_odds + 1)
                 self.pot_a_eq = self.a_bet_amt * self.adj_a_odds
                 self.money += self.pot_a_eq - self.h_bet_amt
                 self.a_bet_count += 1
-                self.print_bet()
+                self.tot_bets += 1
+                self.print_bet(action)
+                self.last_bet = action
+
+        if action == ACTION_BUY_H:
+            if self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
+                if self.last_bet == ACTION_BUY_H:
+                    print('cant repeat bets, must hedge')
+                    return
+                self.h_bet_amt = (self.eq_a + self.a_bet_amt) / (self.adj_h_odds + 1)
+                self.pot_h_eq = self.h_bet_amt * self.adj_h_odds
+                self.money += self.pot_h_eq - self.a_bet_amt
+                self.h_bet_count += 1
+                self.tot_bets += 1
+                self.print_bet(action)
+                self.last_bet = action
         if action == ACTION_SKIP:
             print('s')
 
@@ -176,10 +197,11 @@ class SipEnv(gym.Env):
         self.adj_a_odds = eq_calc(self.a_odds)
         self.adj_h_odds = eq_calc(self.h_odds)
 
-    def print_bet(self):
+    def print_bet(self, action):
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
         print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
-        print('pot_eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
+        print('eq_a: ' + str(self.pot_a_eq) + ' | eq_h: ' + str(self.eq_h))
+        print(act_name(action))
 
     def print_step(self):
         print('index in game: ' + str(self.state.index))
@@ -198,7 +220,9 @@ def act_name(act):
     if act == 0:
         return 'SKIP'
     elif act == 1:
-        return 'BUY AWAY'
+        return 'BOUGHT AWAY'
+    else:
+        return 'BOUGHT HOME'
 
 
 def eq_calc(odd):
