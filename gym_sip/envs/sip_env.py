@@ -34,14 +34,16 @@ class SippyState:
         transformer.transform(self.game)
 
     def init_h_odds(self):
-        while self.h_odds() == 0 and self.first_h_odd == 0:
-            self.index -= 1
-        self.first_h_odd = self.h_odds()
+        i = self.game_len - 1
+        while int(self.game.iloc[i, 10]) == 0 and self.first_h_odd == 0:
+            i -= 1
+        self.first_h_odd = int(self.game.iloc[i, 10])
 
     def init_a_odds(self):
-        while self.a_odds() == 0 and self.first_a_odd == 0:
+        i = self.game_len - 1
+        while int(self.game.iloc[i, 9]) == 0 and self.first_a_odd == 0:
             self.index -= 1
-        self.first_a_odd = self.a_odds()
+        self.first_a_odd = int(self.game.iloc[i, 10])
 
     def reset(self):
         self.index = len(self.game - 1)
@@ -91,7 +93,6 @@ class SipEnv(gym.Env):
         }
         self.df, self.teams = read_csv(self.fn, self.headers)
         self.num_games = num_games(self.df)
-        print(str(num_games))
         self.states = {}
         self.id = 0
         self.ids = []
@@ -142,7 +143,7 @@ class SipEnv(gym.Env):
 
     def actions(self, action):
         sum_for_a = self.init_h_odds + self.a_odds
-        sum_for_h = self.init_a_odds + self.h_odds
+        sum_for_h = self.init_a_odds + self.h_odds  # cant be zero
 
         if action == ACTION_BUY_A:
             if self.a_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
