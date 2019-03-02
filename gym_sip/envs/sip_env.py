@@ -87,10 +87,11 @@ class SipEnv(gym.Env):
                     'a_hcap_tot': 'Int32',
                     'h_hcap_tot': 'Int32'
         }
-        self.df = read_csv(self.fn, self.headers)
+        self.df, self.teams = read_csv(self.fn, self.headers)
         self.states = {}
+        self.id = 0
         self.ids = []
-        self.ids, self.states, self.teams = chunk_df(self.df)
+        self.ids, self.states = chunk_df(self.df)
         self.max_bets = 1  # MAX NUM OF HEDGED BETS. TOTAL BET COUNT = 2N
         self.a_bet_count = 0
         self.a_bet_amt = 0
@@ -143,8 +144,8 @@ class SipEnv(gym.Env):
             print('s')
 
     def new_game(self):
-        new_id = random.choice(self.ids)
-        self.state = SippyState(self.states[new_id])
+        self.id = random.choice(self.ids)
+        self.state = SippyState(self.states[self.id])
         self.a_bet_count = 0
 
     def next(self):
@@ -170,7 +171,7 @@ class SipEnv(gym.Env):
         self.adj_h_odds = eq_calc(self.h_odds)
 
     def print_info(self):
-
+        print(self.teams[self.id])
         print('a_bet_amt: ' + str(self.a_bet_amt) + ' | h_bet_amt: ' + str(self.h_bet_amt))
         print('init_a_odds: ' + str(self.init_a_odds) + ' | init_h_odds: ' + str(self.init_h_odds))
         # print('a_odds: ' + str(self.state.a_odds()) + ' | h_odds: ' + str(self.state.h_odds()))
@@ -199,13 +200,21 @@ def eq_calc(odd):
 def chunk_df(df):
     ids = df['game_id'].unique().tolist()
     states = {key: val for key, val in df.groupby('game_id')}
-    teams = {key: val['a_team', 'h_team'] for key, val in df.grou}
-    return ids, states, teams
+
+    return ids, states
+
+
+def team_dict(df):
+    print(df)
+    teams = df.iloc[:, 1:4]
+    print(teams)
+    teams_dict = {key: val for key, val in teams.groupby('game_id')}
+    return teams_dict
 
 
 def read_csv(fn, headers):
     raw = pd.read_csv(fn, usecols=headers)
     raw = raw.dropna()
+    teams = team_dict(raw)
     raw = pd.get_dummies(data=raw, columns=['a_team', 'h_team', 'league'])
-    print(raw['a_team'])
-    return raw.copy()
+    return raw.copy(), teams
