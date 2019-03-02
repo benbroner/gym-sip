@@ -63,8 +63,6 @@ class SippyState:
         return int(self.game.iloc[self.index, 10])
 
 
-
-
 class SipEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -160,6 +158,7 @@ class SipEnv(gym.Env):
         self.update()
         state, done = self.state.next()
         self.init_h_odds = self.state.first_h_odd
+        self.init_a_odds = self.state.first_a_odd
         return state
 
     def reset(self):
