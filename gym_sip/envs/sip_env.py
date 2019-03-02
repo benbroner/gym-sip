@@ -18,8 +18,9 @@ class SippyState:
             raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(self.ids))
         self.id = self.ids[0]
         self.index = 0
-        self.init_h_odds()
         self.first_h_odd = self.h_odds()
+        self.first_a_odd = self.a_odds()
+        self.init_h_odds()
 
         print("Imported data from {}".format(self.id))
 
@@ -28,8 +29,14 @@ class SippyState:
         transformer.transform(self.game)
 
     def init_h_odds(self):
-        while self.h_odds() == 0:
-            self.next()
+        while self.h_odds() == 0 and self.first_h_odd == 0:
+            self.index += 1
+        self.first_h_odd = self.h_odds()
+
+    def init_a_odds(self):
+        while self.a_odds() == 0 and self.first_a_odd == 0:
+            self.index += 1
+        self.first_a_odd = self.a_odds()
 
     def reset(self):
         self.index = 0
@@ -39,13 +46,7 @@ class SippyState:
             return None, True
         values = self.game.iloc[self.index, 0:]
         self.index += 1
-        self.no_odds()
         return values, False
-
-    def no_odds(self):
-        while self.a_odds() == 0 and self.h_odds() == 0:
-            print('moneyline closed')
-            self.index += 1
 
     def shape(self):
         return self.game.shape
@@ -106,7 +107,8 @@ class SipEnv(gym.Env):
         self.reward_sum = 0
         self.pot_a_eq = 0
         self.state = None
-        self.observation_space = spaces.Box(low=--100000000., high=100000000., shape=(self.df.shape[1], ))
+        self.last_bet = None
+        self.observation_space = spaces.Box(low=-100000000., high=100000000., shape=(self.df.shape[1], ))
         self.action_space = spaces.Discrete(2)
         if len(self.states) == 0:
             raise NameError('Invalid empty directory {}'.format(self.fn))
@@ -139,6 +141,11 @@ class SipEnv(gym.Env):
         if action == ACTION_SKIP:
             print('s')
 
+    def new_game(self):
+        new_id = random.choice(self.ids)
+        self.state = SippyState(self.states[new_id])
+        self.a_bet_count = 0
+
     def next(self):
         self.new_game()
         self.update()
@@ -149,11 +156,6 @@ class SipEnv(gym.Env):
     def reset(self):
         self.money = AUM
         self.next()
-
-    def new_game(self):
-        new_id = random.choice(self.ids)
-        self.state = SippyState(self.states[new_id])
-        self.a_bet_count = 0
 
     def update(self):
         self.get_odds()
