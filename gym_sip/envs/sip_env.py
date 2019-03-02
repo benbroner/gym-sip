@@ -135,9 +135,12 @@ class SipEnv(gym.Env):
         if not done:
             self.update()
 
-        # if done == 1 and self.h_bet_count != self.a_bet_amt:
-        #     print('forgot to hedge')
-        #     self.money -= self.h_bet_amt + self.a_bet_amt  # sum bets made
+        if done == 1 and self.h_bet_count > self.a_bet_count:
+            print('forgot to hedge')
+            self.money -= self.init_h_odds  # sum bets made
+        if done == 1 and self.h_bet_count < self.a_bet_count:
+            print('forgot to hedge')
+            self.money -= self.init_a_odds  # sum bets made
 
         self.actions(action)
         reward = self.money - prev_portfolio
@@ -149,7 +152,7 @@ class SipEnv(gym.Env):
         sum_for_h = self.init_a_odds + self.h_odds  # cant be zero
 
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
+            if self.a_odds != 0 and self.h_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
                 if self.last_bet == ACTION_BUY_A:
                     print('cant repeat bets, must hedge')
                     return
@@ -162,10 +165,10 @@ class SipEnv(gym.Env):
                 self.print_bet(action)
                 self.last_bet = action
                 if self.tot_bets % 2 == 1:
-                    self.money -= self.h_bet_amt
-
+                    self.init_a_odds = self.a_odds
+                    self.init_h_odds = self.h_odds
         if action == ACTION_BUY_H:
-            if self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
+            if self.a_odds != 0 and self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
                 if self.last_bet == ACTION_BUY_H:
                     print('cant repeat bets, must hedge')
                     return
@@ -178,7 +181,8 @@ class SipEnv(gym.Env):
                 self.print_bet(action)
                 self.last_bet = action
                 if self.tot_bets % 2 == 1:
-                    self.money -= self.a_bet_amt
+                    self.init_a_odds = self.a_odds
+                    self.init_h_odds = self.h_odds
         if action == ACTION_SKIP:
             print('s')
 
