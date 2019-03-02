@@ -108,6 +108,8 @@ class SipEnv(gym.Env):
         self.money = AUM  # DOESN'T MATTER IF IT RUNS OUT OF MONEY AND MAX BETS IS HELD CONSTANT
         self.init_a_odds = 0
         self.init_h_odds = 0
+        self.init_a_amt = 0
+        self.init_h_amt = 0
         self.h_bet_amt = (0.05 * self.money) + self.base_bet  # it bottoms out if just 0.05 * self.money
         self.adj_a_odds = 0
         self.adj_h_odds = 0
@@ -137,10 +139,10 @@ class SipEnv(gym.Env):
 
         if done == 1 and self.h_bet_count > self.a_bet_count:
             print('forgot to hedge')
-            self.money -= self.init_h_odds  # sum bets made
+            self.money -= self.init_h_amt
         if done == 1 and self.h_bet_count < self.a_bet_count:
             print('forgot to hedge')
-            self.money -= self.init_a_odds  # sum bets made
+            self.money -= self.init_a_amt
 
         self.actions(action)
         reward = self.money - prev_portfolio
@@ -158,15 +160,13 @@ class SipEnv(gym.Env):
                     return
                 self.a_bet_amt = (self.eq_h + self.h_bet_amt) / (self.adj_a_odds + 1)
                 self.pot_a_eq = self.a_bet_amt * self.adj_a_odds
-                self.money += self.pot_a_eq - self.h_bet_amt
+                self.money += self.pot_a_eq
                 self.a_bet_count += 1
                 self.tot_bets += 1
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
-                if self.tot_bets % 2 == 1:
-                    self.init_a_odds = self.a_odds
-                    self.init_h_odds = self.h_odds
+                self.new_pair()
         if action == ACTION_BUY_H:
             if self.a_odds != 0 and self.h_odds != 0 and self.h_bet_count < self.max_bets and sum_for_h > 0:
                 if self.last_bet == ACTION_BUY_H:
@@ -174,15 +174,14 @@ class SipEnv(gym.Env):
                     return
                 self.h_bet_amt = (self.eq_a + self.a_bet_amt) / (self.adj_h_odds + 1)
                 self.pot_h_eq = self.h_bet_amt * self.adj_h_odds
-                self.money += self.pot_h_eq - self.a_bet_amt
+                self.money += self.pot_h_eq
                 self.h_bet_count += 1
                 self.tot_bets += 1
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
-                if self.tot_bets % 2 == 1:
-                    self.init_a_odds = self.a_odds
-                    self.init_h_odds = self.h_odds
+                self.new_pair()
+
         if action == ACTION_SKIP:
             print('s')
 
@@ -196,8 +195,8 @@ class SipEnv(gym.Env):
         self.new_game()
         self.update()
         state, done = self.state.next()
-        self.init_h_odds = self.state.first_h_odd
-        self.init_a_odds = self.state.first_a_odd
+        self.init_h_odds = 0
+        self.init_a_odds = 0
         return state
 
     def reset(self):
@@ -210,6 +209,13 @@ class SipEnv(gym.Env):
         self.a_bet_amt = self.h_bet_amt
         self.eq_h = self.h_bet_amt * eq_calc(self.init_h_odds)
         self.eq_a = self.a_bet_amt * eq_calc(self.init_a_odds)
+
+    def new_pair(self):
+        if self.tot_bets % 2 == 1:
+            self.init_a_odds = self.a_odds
+            self.init_h_odds = self.h_odds
+            self.init_a_amt = self.a_bet_amt
+            self.init_h_amt = self.h_bet_amt
 
     def get_odds(self):
         self.a_odds = self.state.a_odds()
