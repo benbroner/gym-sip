@@ -30,11 +30,16 @@ class SippyState:
         self.index = self.game_len - 1
 
         # since the file was written append, we are decrementing from end
-        self.values = self.game.iloc[self.index]
+        self.cur_state = self.game.iloc[self.index]
 
         print("imported {}".format(self.id))
 
     def next(self):
+        if self.index < 0:
+            return None, True  # No state to return, done = True
+        self.cur_state = self.game.iloc[self.index, 0:]
+        self.index -= 1
+        return self.cur_state, False
 
     def reset(self):
         self.index = len(self.game - 1)
@@ -62,25 +67,23 @@ class SipEnv(gym.Env):
 
     def step(self, action):
 
+
     def actions(self, action):
 
-    def new_game(self):
-        self.id = random.choice(self.ids)
-        self.state = SippyState(self.states[self.id])
-        self.a_bet_count = 0
-        self.h_bet_count = 0
 
     def next(self):
-        self.new_game()
+        self.new_game()  # 
         self.update()
         state, done = self.state.next()
-        self.init_h_odds = 0
-        self.init_a_odds = 0
         return state
 
     def reset(self):
         self.money = AUM
         self.next()
+
+    def new_game(self):
+        self.id = random.choice(self.ids)
+        self.state = SippyState(self.states[self.id])
 
     def update(self):
         self.get_odds()
@@ -89,20 +92,9 @@ class SipEnv(gym.Env):
         self.eq_h = self.h_bet_amt * h._eq(self.init_h_odds)
         self.eq_a = self.a_bet_amt * h._eq(self.init_a_odds)
 
-    def new_pair(self):
-        if self.tot_bets % 2 == 1:
-            self.init_a_odds = self.a_odds
-            self.init_h_odds = self.h_odds
-            self.init_a_amt = self.a_bet_amt
-            self.init_h_amt = self.h_bet_amt
 
-    def get_odds(self):
-        self.a_odds = self.state.a_odds()
-        self.h_odds = self.state.h_odds()
-        self.adj_a_odds = h._eq(self.a_odds)
-        self.adj_h_odds = h._eq(self.h_odds)
 
-    def print_step(self):
+    def _print(self):
         print('index in game: ' + str(self.state.index))
         print('a teams: ' + str(self.teams[self.id]['a_team'].iloc[0]) +
               ' | h_team ' + str(self.teams[self.id]['h_team'].iloc[0]))
@@ -132,17 +124,14 @@ class Bet:
 
 class Hedge:
     def __init__(self, bet, bet2):
-        self.net = self._net()
-        # might want to at least check the
-
-    def _net(self):
-        if team == 0:
-            self.amt * h._eq(odd) -
+        self.net = h._net(bet, bet2)
 
     def _print(self):
         self.bet._print()
         self.bet2._print()
-        self.
+        print('hedged profit: ' + str(self.net))
+
+    # TODO 
+    # add function that writes bets to CSV for later analysis
 
 
-def print_bet(bet):

@@ -85,25 +85,6 @@ class DQN(nn.Module):
 
 def get_line():
 
-    screen = env.render(mode='rgb_array').transpose((2, 0, 1))
-    _, screen_height, screen_width = screen.shape
-    screen = screen[:, int(screen_height*0.4):int(screen_height * 0.8)]
-    view_width = int(screen_width * 0.6)
-    cart_location = get_cart_location(screen_width)
-    if cart_location < view_width // 2:
-        slice_range = slice(view_width)
-    elif cart_location > (screen_width - view_width // 2):
-        slice_range = slice(-view_width, None)
-    else:
-        slice_range = slice(cart_location - view_width // 2,
-                            cart_location + view_width // 2)
-    # Strip off the edges, so that we have a square image centered on a cart
-    screen = screen[:, :, slice_range]
-    # Convert to float, rescale, convert to torch tensor
-    # (this doesn't require a copy)
-    screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
-    screen = torch.from_numpy(screen)
-    # Resize, and add a batch dimension (BCHW)
     return resize(screen).unsqueeze(0).to(device)
 
 BATCH_SIZE = 128
