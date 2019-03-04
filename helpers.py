@@ -3,6 +3,13 @@ import sys
 import pandas as pd
 
 
+def csv_to_games(fn):
+    raw = csv(fn)
+    df = dummies(raw, ['league', 'a_team', 'h_team'])
+    games = chunk(df, 'game_id')
+    return games
+
+
 def csv(fn):
     # takes in file name, returns pandas dataframe
     # fn is type string

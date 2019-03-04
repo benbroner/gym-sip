@@ -2,11 +2,6 @@ import gym
 import random
 import helpers as h
 
-# design element added march 4
-# all functions that are arithmetic, assume the underscore '_' prefix
-# eg def _eq(odd):
-
-
 # Macros for actions
 ACTION_BUY_A = 0
 ACTION_BUY_H = 1
@@ -23,10 +18,7 @@ class SippyState:
     def __init__(self, game):
         self.game = game  # store in State for repeated access
         self.game_len = len(game)  # used often
-
-        self.ids()  # check to see if the games were not chunked correctly
-        self.id = self.ids[0]
-
+        self.id = self.ids()[0]
         self.index = self.game_len - 1
 
         # since the file was written append, we are decrementing from end
@@ -56,25 +48,25 @@ class SippyState:
     def ids(self):
         ids = self.game['game_id'].unique()
         if len(ids) > 1:
+            # check to see if the games were not chunked correctly
             raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(ids))
+        return ids
 
 
 class SipEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, fn):
-        self.df = h.csv(fn)
+        self.games = h.csv_to_games(fn)
+        self.game = self.new_game()
+        self.money = AUM
 
-    def step(self, action):
-
-
-    def actions(self, action):
+    def step(self, action):  # action given to us from test.py
 
 
     def next(self):
-        self.new_game()  # 
-        self.update()
-        state, done = self.state.next()
+        self.new_game()
+        state, done = self.game.next()
         return state
 
     def reset(self):
@@ -82,17 +74,8 @@ class SipEnv(gym.Env):
         self.next()
 
     def new_game(self):
-        self.id = random.choice(self.ids)
-        self.state = SippyState(self.states[self.id])
-
-    def update(self):
-        self.get_odds()
-        self.h_bet_amt = (0.05 * self.money) + self.base_bet
-        self.a_bet_amt = self.h_bet_amt
-        self.eq_h = self.h_bet_amt * h._eq(self.init_h_odds)
-        self.eq_a = self.a_bet_amt * h._eq(self.init_a_odds)
-
-
+        id = random.choice(list(self.games.keys()))
+        return SippyState(self.games[id])
 
     def _print(self):
         print('index in game: ' + str(self.state.index))
@@ -109,11 +92,11 @@ class Bet:
     # possibly using line numbers where they update -(1/(x-5)). x=5 is end of game
 
     # maybe bets should be stored as a step (csv line) and the bet amt and index into game.
-    def __init__(self):
-        self.amt = 0
-        self.team = 0  # 0 for away, 1 for home
-        self.a_odds = 0
-        self.h_odds = 0
+    def __init__(self, amt, team, a, h):
+        self.amt = amt
+        self.team = team  # 0 for away, 1 for home
+        self.a_odds = a
+        self.h_odds = h
 
     def _print(self)
         # simple console log of a bet
