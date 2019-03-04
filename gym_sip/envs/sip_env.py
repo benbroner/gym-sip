@@ -21,7 +21,7 @@ class SippyState:
         if len(self.ids) > 1:
             raise Exception('there was an error, chunked game has more than one id, the ids are {}'.format(self.ids))
         self.id = self.ids[0]
-
+        self.values = 0
         self.index = self.game_len - 1
         self.first_h_odd = self.h_odds()
         self.first_a_odd = self.a_odds()
@@ -52,9 +52,20 @@ class SippyState:
         self.index = len(self.game - 1)
 
     def next(self):
+        self.first()
+        while self.a_odds() == 0 and self.h_odds == 0:
+            if self.index < 0:
+                return None, True
+            self.values = self.game.iloc[self.index, 0:]
+            print('index: ' + str(self.index))
+            self.index -= 1
+        return self.values, False
+
+    def first(self):
         if self.index < 0:
             return None, True
-        values = self.game.iloc[self.index, 0:]
+        self.values = self.game.iloc[self.index, 0:]
+        print('index: ' + str(self.index))
         self.index -= 1
         return values, False
 
@@ -163,7 +174,7 @@ class SipEnv(gym.Env):
             return
 
         if action == ACTION_BUY_A:
-            if self.a_odds != 0 and self.h_odds != 0 and self.a_bet_count < self.max_bets:
+            if self.a_odds != 0 and self.h_odds != 0 and self.a_bet_count < self.max_bets and sum_for_a > 0:
                 if self.last_bet == ACTION_BUY_A:
                     print('cant repeat bets, must hedge')
                     return
@@ -191,7 +202,6 @@ class SipEnv(gym.Env):
                 self.print_step()
                 self.print_bet(action)
                 self.last_bet = action
-
 
 
     def new_game(self):

@@ -10,7 +10,7 @@ reward_sum = 0
 
 for i in range(30000):
     if i % 100 == 0:
-        print("i: " + str(i))
+        print("csv line: " + str(i))
     s, r, d, m = env.step(random.randrange(0, env.action_space.n))
     reward_sum += r
 
