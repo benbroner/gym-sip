@@ -2,8 +2,6 @@ import gym
 import random
 import helpers as h
 
-from sklearn.preprocessing import RobustScaler
-
 # design element added march 4
 # all functions that are arithmetic, assume the underscore '_' prefix
 # eg def _eq(odd):

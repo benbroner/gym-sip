@@ -44,3 +44,13 @@ def _act(act):
         return 'skip'
     else: 
         return 'action outside of defined actions'
+
+
+def _net(bet, bet2):
+    # given two Bets, calculates the profit of the hedge
+    # input: 2 Bet classes, output float
+
+    if team == 0:
+        return bet.amt * h._eq(bet.a_odds) - bet2.amt * h._eq(bet2.h_odds)
+    elif team == 1:
+        return bet.amt * h._eq(bet.h_odds) - bet2.amt * h._eq(bet2.a_odds)
