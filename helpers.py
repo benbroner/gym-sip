@@ -51,7 +51,7 @@ def _act(act):
     elif act == 1:
         return 'BOUGHT HOME'
     elif act == 2:
-        return 'skip'
+        return 'SKIP'
     else: 
         return 'action outside of defined actions'
 

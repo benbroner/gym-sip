@@ -74,8 +74,8 @@ class SipEnv(gym.Env):
         self.next()
 
     def new_game(self):
-        id = random.choice(list(self.games.keys()))
-        return SippyState(self.games[id])
+        game_id = random.choice(list(self.games.keys()))
+        return SippyState(self.games[game_id])
 
     def _print(self):
         print('index in game: ' + str(self.state.index))

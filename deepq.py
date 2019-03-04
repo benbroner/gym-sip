@@ -94,14 +94,11 @@ EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
 
-# Get screen size so that we can initialize layers correctly based on shape
-# returned from AI gym. Typical dimensions at this point are close to 3x40x90
-# which is the result of a clamped and down-scaled render buffer in get_screen()
-init_screen = get_screen()
-_, _, screen_height, screen_width = init_screen.shape
+init_line = get_line()
+_, _, input_height, input_width = init_line.shape
 
-policy_net = DQN(screen_height, screen_width).to(device)
-target_net = DQN(screen_height, screen_width).to(device)
+policy_net = DQN(input_height, input_width).to(device)
+target_net = DQN(input_height, input_width).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
