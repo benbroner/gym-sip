@@ -27,9 +27,11 @@ class SippyState:
         print("imported {}".format(self.id))
 
     def next(self):
-        if self.index < 0:
-            return None, True  # No state to return, done = True
+        if self.game_over():
+             return None, True
+
         self.cur_state = self.game.iloc[self.index, 0:]
+
         self.index -= 1
         return self.cur_state, False
 
@@ -45,6 +47,9 @@ class SippyState:
     def h_odds(self):
         return int(self.game.iloc[self.index, 10])
 
+    def game_over():
+        return self.index < 0
+
     def ids(self):
         ids = self.game['game_id'].unique()
         if len(ids) > 1:
@@ -57,17 +62,28 @@ class SipEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, fn):
-        self.games = h.csv_to_games(fn)
+        self.games = h.get_games(fn)
         self.game = self.new_game()
         self.money = AUM
+        self.hedges = []
+
 
     def step(self, action):  # action given to us from test.py
+        prev_state = cur_state
+        cur_state, done = self.game.next()
+        state = self._delta(prev_state, cur_state)
+
+        if not done:
+            reward = self.
+
+        return cur_state, reward, done, None
+
 
 
     def next(self):
         self.new_game()
-        state, done = self.game.next()
-        return state
+        cur_state, done = self.game.next()
+        return cur_state
 
     def reset(self):
         self.money = AUM
@@ -77,7 +93,9 @@ class SipEnv(gym.Env):
         game_id = random.choice(list(self.games.keys()))
         return SippyState(self.games[game_id])
 
-    def _print(self):
+    def _delta(self): # difference between two timesteps 
+
+    def __repr__(self):
         print('index in game: ' + str(self.state.index))
         print('a teams: ' + str(self.teams[self.id]['a_team'].iloc[0]) +
               ' | h_team ' + str(self.teams[self.id]['h_team'].iloc[0]))
@@ -98,7 +116,7 @@ class Bet:
         self.a_odds = a
         self.h_odds = h
 
-    def _print(self)
+    def __repr__(self)
         # simple console log of a bet
         print(h.act_name(self.team))
         print('bet amt: ' + str(self.amt))
@@ -109,7 +127,7 @@ class Hedge:
     def __init__(self, bet, bet2):
         self.net = h._net(bet, bet2)
 
-    def _print(self):
+    def __repr__(self):
         self.bet._print()
         self.bet2._print()
         print('hedged profit: ' + str(self.net))

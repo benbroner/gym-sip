@@ -1,13 +1,16 @@
 # helper functions for Sip OpenAI Gym environment
 import sys
+import datetime
 import pandas as pd
 
-
-def csv_to_games(fn):
+def get_games(fn):
+    # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
-    df = dummies(raw, ['league', 'a_team', 'h_team'])
+    df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
+    df = dates(df)
     games = chunk(df, 'game_id')
     return games
+
 
 
 def csv(fn):
@@ -18,11 +21,21 @@ def csv(fn):
     return df.copy()
 
 
-def dummies(df, cols):
+def one_hots(df, cols):
     # take in df and convert to df w dummies of cols 
     # df is pandas df, cols is string list
     one_hot_df = pd.get_dummies(data=df, columns=cols)
     return one_hot_df
+
+
+def dates(df):
+    # convert ['lms_date', 'lms_time'] into datetimes
+    lms_dates = df['lms_date']
+    lms_times = df['lms_time']
+    df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
+    df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
+    df = df.drop(['lms_date', 'lms_time'], axis=1)
+    return df
 
 
 def chunk(df, col):
