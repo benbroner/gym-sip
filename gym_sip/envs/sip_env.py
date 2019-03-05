@@ -65,19 +65,20 @@ class SipEnv(gym.Env):
         self.games = h.get_games(fn)
         self.game = self.new_game()
         self.money = AUM
+        self.last_bet = None  # 
+
         self.hedges = []
 
 
     def step(self, action):  # action given to us from test.py
         prev_state = cur_state
         cur_state, done = self.game.next()
-        state = self._delta(prev_state, cur_state)
+        state = cur_state - prev_state
 
         if not done:
-            reward = self.
+            reward = self.action(action)
 
         return cur_state, reward, done, None
-
 
 
     def next(self):
@@ -90,10 +91,21 @@ class SipEnv(gym.Env):
         self.next()
 
     def new_game(self):
+        self.last_bet = None  # once a game has ended, bets are cleared 
         game_id = random.choice(list(self.games.keys()))
         return SippyState(self.games[game_id])
 
-    def _delta(self): # difference between two timesteps 
+    def _reward(self, action):
+        if action == ACTION_SKIP:
+            return 0
+        if self.last_bet == None:
+            self.new_hedge(action)
+        else:
+            self.end_hedge(action)
+
+    def new_hedge(self, action):
+        if action == ACTION_BUY_A:
+            bet_amt = h.bet_amt(self.money)
 
     def __repr__(self):
         print('index in game: ' + str(self.state.index))

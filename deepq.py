@@ -128,6 +128,26 @@ def select_action(state):
 episode_durations = []
 
 
+def plot_durations():
+    plt.figure(2)
+    plt.clf()
+    durations_t = torch.tensor(episode_durations, dtype=torch.float)
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Duration')
+    plt.plot(durations_t.numpy())
+    # Take 100 episode averages and plot them too
+    if len(durations_t) >= 100:
+        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(99), means))
+        plt.plot(means.numpy())
+
+    plt.pause(0.001)  # pause a bit so that plots are updated
+    if is_ipython:
+        display.clear_output(wait=True)
+        display.display(plt.gcf())
+
+
 def optimize_model():
     if len(memory) < BATCH_SIZE:
         return
@@ -151,51 +171,3 @@ def optimize_model():
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
-
-
-env.reset()
-num_episodes = 50
-
-for i_episode in range(num_episodes):
-
-	# train on the differences between last state and current state
-    prev_line = get_line()
-    cur_line = get_line()
-    state = cur_line - prev_line
-
-    for t in count():
-
-        action = select_action(state)
-
-        _, reward, done, _ = env.step(action.item())
-        reward = torch.tensor([reward], device=device)
-
-        # Observe new state
-        prev_line = cur_line
-        cur_line = get_line()
-        if not done:
-            next_state = current_screen - last_screen
-        else:
-            next_state = None
-
-        # Store the transition in memory
-        memory.push(state, action, next_state, reward)
-
-        # Move to the next state
-        state = next_state
-
-        # Perform one step of the optimization (on the target network)
-        optimize_model()
-        if done:
-            episode_durations.append(t + 1)
-            plot_durations()
-            break
-    # Update the target network, copying all weights and biases in DQN
-    if i_episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
-
-print('Complete')
-env.render()
-env.close()
-plt.ioff()
-plt.show()

@@ -12,7 +12,6 @@ def get_games(fn):
     return games
 
 
-
 def csv(fn):
     # takes in file name, returns pandas dataframe
     # fn is type string
@@ -30,8 +29,6 @@ def one_hots(df, cols):
 
 def dates(df):
     # convert ['lms_date', 'lms_time'] into datetimes
-    lms_dates = df['lms_date']
-    lms_times = df['lms_time']
     df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
     df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
     df = df.drop(['lms_date', 'lms_time'], axis=1)
@@ -77,3 +74,7 @@ def _net(bet, bet2):
         return bet.amt * _eq(bet.a_odds) - bet2.amt * _eq(bet2.h_odds)
     elif bet.team == 1:
         return bet.amt * _eq(bet.h_odds) - bet2.amt * _eq(bet2.a_odds)
+
+
+def _bet_amt(money):
+    return 0.05 * money + 100
