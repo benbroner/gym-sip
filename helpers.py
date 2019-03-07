@@ -7,16 +7,27 @@ def get_games(fn):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
     df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
-    # df = dates(df)
-    df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
-    # print(df.iloc[0, :])
-    try:
-        df = df.astype(np.float32)
-    except ValueError:
-        print(df.dtypes)
+    df = dates(df)
+    # df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
+    df = df.astype(np.float32)
     games = chunk(df, 'game_id')
     return games
 
+
+def get_df(fn):
+    raw = csv(fn)
+    df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
+    df = dates(df)
+    df = df.astype(np.float32)
+    return df
+
+
+def split(df, col):
+    # give column to be predicted given all others in csv
+    # df is pd, col is string
+    Y = df[col]
+    X = df
+    return X, Y
 
 def csv(fn):
     # takes in file name, returns pandas dataframe
@@ -37,6 +48,7 @@ def dates(df):
     # convert ['lms_date', 'lms_time'] into datetimes
     df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
     df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
+    df['datetime'] = pd.to_numeric(df['datetime'])
     df = df.drop(['lms_date', 'lms_time'], axis=1)
     return df
 

@@ -52,25 +52,28 @@ class DQN(nn.Module):
 
     def __init__(self, h, w):
         super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
+        self.conv1 = nn.Conv2d(50, 1, kernel_size=3, stride=2)
         self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=2)
         self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=3, stride=2)
         self.bn3 = nn.BatchNorm2d(32)
 
         # Number of Linear input connections depends on output of conv2d layers
         # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size = 5, stride = 2):
+        def conv2d_size_out(size, kernel_size = 6, stride = 1):
             return (size - (kernel_size - 1) - 1) // stride + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
+        print(convw)
+        print(convh)
         linear_input_size = convw * convh * 32
         self.head = nn.Linear(linear_input_size, 2)  # 448 or 512
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
+        # print(x)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
@@ -86,7 +89,7 @@ EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
 
-_, _, input_height, input_width = (1, 1, 64, 93)
+_, _, input_height, input_width = (10, 3, 3, 1)
 
 policy_net = DQN(input_height, input_width).to(device)
 target_net = DQN(input_height, input_width).to(device)
@@ -103,7 +106,9 @@ def select_action(state):
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    s = torch.tensor(state)
+    s = torch.tensor(state, device=device)
+    s = s.reshape(10, 3, 3, 1)
+    # print(s)
     if sample > eps_threshold:
         with torch.no_grad():
             # t.max(1) will return largest column value of each row.
@@ -120,7 +125,7 @@ def optimize_model():
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.np.float32)
+                                          batch.next_state)), device=device, dtype=torch.uint8)
     non_final_next_states = torch.cat([s for s in batch.next_state
                                                 if s is not None])
     state_batch = torch.cat(batch.state)
@@ -146,24 +151,24 @@ for ep in range(EPISODES):
     # init
     prev_state = env.cur_state
     cur_state = env.cur_state
-    # s = (cur_state - prev_state)
-    s = cur_state
-    print(s)
+    s = (cur_state - prev_state)
+    # s = cur_state
+    # print(s)
     # TODO can't train on derivative because datetime adding does not work
 
     for i in range(EPOCHS):
 
         action = select_action(s)  # selecting action using deep q network
         ret_state, r, done, info = env.step(action)
-        r_tensor = torch.tensor([r])
+        r_tensor = torch.tensor([r], device=device)
 
         # Observe new state TODO
         prev_state = cur_state
         cur_state = ret_state
 
         if not done:
-            # next_state = cur_state - prev_state
-            next_state = cur_state
+            next_state = cur_state - prev_state
+            # next_state = cur_state
         else:
             next_state = None
 

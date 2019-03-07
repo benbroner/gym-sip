@@ -84,7 +84,7 @@ class SipEnv(gym.Env):
 
         self._odds()
 
-        if self.is_valid(done):
+        if not self.is_valid(done):
             if self.last_bet is not None and done is True:  # unhedged bet, lose bet1 amt
                 reward = -self.last_bet.amt
             else:
