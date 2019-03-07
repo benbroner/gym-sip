@@ -1,13 +1,19 @@
 # helper functions for Sip OpenAI Gym environment
-import sys
-import datetime
 import pandas as pd
+import numpy as np
+
 
 def get_games(fn):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
     df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
-    df = dates(df)
+    # df = dates(df)
+    df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
+    # print(df.iloc[0, :])
+    try:
+        df = df.astype(np.float32)
+    except ValueError:
+        print(df.dtypes)
     games = chunk(df, 'game_id')
     return games
 
@@ -15,7 +21,7 @@ def get_games(fn):
 def csv(fn):
     # takes in file name, returns pandas dataframe
     # fn is type string
-    df = pd.read_csv(fn)
+    df = pd.read_csv(fn, dtype='unicode')
     df.dropna()
     return df.copy()
 

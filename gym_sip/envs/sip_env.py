@@ -1,7 +1,7 @@
 import gym
 import random
 import helpers as h
-
+import numpy as np
 # Macros for actions
 ACTION_BUY_A = 0
 ACTION_BUY_H = 1
@@ -28,7 +28,7 @@ class SippyState:
 
     def next(self):
         if self.game_over():
-             return None, True
+            return None, True
 
         self.cur_state = self.game.iloc[self.index, 0:]
 
@@ -66,10 +66,13 @@ class SipEnv(gym.Env):
         self.game = self.new_game()
         self.money = AUM
         self.last_bet = None  # 
-        self.cur_state = None  # need to store 
+        self.cur_state = self.game.cur_state  # need to store
         self.action = None
         self.hedges = []
         self.odds = ()  # storing current odds as 2-tuple
+        self.action_space = gym.spaces.Discrete(3)
+        self.observation_space = gym.spaces.Box(low=-100000000., high=100000000., shape=(self.game.shape()[1],),
+                                                dtype=np.float32)
 
     def step(self, action):  # action given to us from test.py
         self.action = action    
@@ -99,7 +102,7 @@ class SipEnv(gym.Env):
 
     def reset(self):
         self.money = AUM
-        self.next()
+        return self.next()
 
     def new_game(self):
         self.last_bet = None  # once a game has ended, bets are cleared 
