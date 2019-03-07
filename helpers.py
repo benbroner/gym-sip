@@ -53,27 +53,25 @@ def _eq(odd):
         return abs(100/odd)
 
 
-def _act(act):
+def act(a):
     # simple function to easily change the action number into a string
     # returns string
-    if act == 0:
+    if a == 0:
         return 'BOUGHT AWAY'
-    elif act == 1:
+    elif a == 1:
         return 'BOUGHT HOME'
-    elif act == 2:
+    elif a == 2:
         return 'SKIP'
     else: 
         return 'action outside of defined actions'
 
 
-def _net(hedge):
+def net(bet, bet2):
     # given a bet pair (bet + hedge)
     # input: Hedge class, output float
     # env.is_valid() should have already caught zero odds lines
     # a full hedge equates the profit, so
     # bet.amt * _eq(bet.a) should be equal to bet2.amt * _eq(bet2.h)
-    bet = hedge.bet
-    bet2 = hedge.bet
     bet_sum = bet.amt + bet2.amt
     if bet.team == 0:
         return bet.amt * _eq(bet.a_odds) - bet_sum
@@ -81,11 +79,11 @@ def _net(hedge):
         return bet.amt * _eq(bet.h_odds) - bet_sum
 
 
-def _bet_amt(money):
-    return 0.05 * money + 100
+def bet_amt(money):
+    return 0.05 * money + 100  # 100 is arbitrary
 
 
-def _hedge_amt(bet, cur_odds):
+def hedge_amt(bet, cur_odds):
     # takes in Bet 1 and calculates the 
     if bet.team == 0:
         return (bet.amt * _eq(bet.a_odds)) / _eq(cur_odds[1])

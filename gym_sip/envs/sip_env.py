@@ -71,7 +71,6 @@ class SipEnv(gym.Env):
         self.hedges = []
         self.odds = ()  # storing current odds as 2-tuple
 
-
     def step(self, action):  # action given to us from test.py
         self.action = action    
 
@@ -110,8 +109,7 @@ class SipEnv(gym.Env):
     def act(self):
         if self.action == ACTION_SKIP:
             return 0  # if skip, reward = 0
-
-        if self.last_bet is None:  # if last bet != None, then this bet is a hedge
+        elif self.last_bet is None:  # if last bet != None, then this bet is a hedge
             self._bet()
             return 0
         else:
@@ -119,10 +117,9 @@ class SipEnv(gym.Env):
             self.money += net
             return net
 
-
     def _bet(self):
-        bet_amt = h._bet_amt(self.money)
-        self.last_bet = Bet(bet_amt, self.action, self.odds)
+        amt = h.bet_amt(self.money)
+        self.last_bet = Bet(amt, self.action, self.odds)
         # we don't update self.money because we don't want it to get a negative reward on _bet()
 
     def is_valid(self, done):
@@ -130,13 +127,13 @@ class SipEnv(gym.Env):
         # it only checks for zero odds and if game is over
         if self.odds == (0, 0):
             return False
-        elif done == True:
+        elif done:
             return False
         else:
             return True
 
     def _hedge(self):
-        hedge_amt = h._hedge_amt(self.last_bet, self.odds)
+        hedge_amt = h.hedge_amt(self.last_bet, self.odds)
         hedged_bet = Bet(hedge_amt, self.action, self.odds)
         hedge = Hedge(self.last_bet, hedged_bet)
         self.hedges.append(hedge)
@@ -145,10 +142,14 @@ class SipEnv(gym.Env):
     def _odds(self):
         self.odds = (self.cur_state[12], self.cur_state[13])
 
+    def get_state(self):
+        return self.cur_state
+
     def __repr__(self):
-        print('index in game: ' + str(self.state.index))
-        print('a teams: ' + str(self.teams[self.id]['a_team'].iloc[0]) +
-              ' | h_team ' + str(self.teams[self.id]['h_team'].iloc[0]))
+        print('index in game: ' + str(self.cur_state.index))
+        # TODO fix team name access and print hedge count
+        # print('a team: ' + str() +
+        #       ' | h_team ' + str())
 
     def _render(self, mode='human', close=False):
         pass
@@ -166,9 +167,9 @@ class Bet:
         self.a_odds = odds[0]
         self.h_odds = odds[1]
 
-    def __repr__(self)
+    def __repr__(self):
         # simple console log of a bet
-        print(h.act_name(self.team))
+        print(h.act(self.team))
         print('bet amt: ' + str(self.amt))
         print('a_odds: ' + str(self.a_odds) + ' | h_odds: ' + str(self.h_odds))
 
@@ -176,13 +177,13 @@ class Bet:
 class Hedge:
     def __init__(self, bet, bet2):
         # input args is two Bets
-        self.net = h._net(bet, bet2)
+        self.net = h.net(bet, bet2)
         self.bet = bet
         self.bet2 = bet2
 
     def __repr__(self):
-        self.bet._print()
-        self.bet2._print()
+        self.bet.__repr__()
+        self.bet2.__repr__()
         print('hedged profit: ' + str(self.net))
 
     # TODO 

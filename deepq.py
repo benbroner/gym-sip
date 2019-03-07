@@ -1,31 +1,5 @@
-import gym
-import math
-import random
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-from collections import namedtuple
-from itertools import count
-from PIL import Image
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torchvision.transforms as T
-
-# credit to https://github.com/apaszke
-# adapted to my own gym environment
-
 
 env = gym.make('Sip-v0').unwrapped
-
-# set up matplotlib
-is_ipython = 'inline' in matplotlib.get_backend()
-if is_ipython:
-    from IPython import display
-
-plt.ion()
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,6 +27,7 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
+
 
 class DQN(nn.Module):
 
@@ -83,10 +58,6 @@ class DQN(nn.Module):
         return self.head(x.view(x.size(0), -1))
 
 
-def get_line():
-
-    return resize(screen).unsqueeze(0).to(device)
-
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
@@ -94,16 +65,16 @@ EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
 
-init_line = get_line()
-_, _, input_height, input_width = init_line.shape
+
+input_height, input_width = (1, 92)
 
 policy_net = DQN(input_height, input_width).to(device)
 target_net = DQN(input_height, input_width).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
-optimizer = optim.RMSprop(policy_net.parameters())
-memory = ReplayMemory(10000)
+optimizer = torch.optim.RMSprop(policy_net.parameters())
+memory = ReplayMemory(1000)
 
 
 steps_done = 0
@@ -123,29 +94,6 @@ def select_action(state):
             return policy_net(state).max(1)[1].view(1, 1)
     else:
         return torch.tensor([[random.randrange(2)]], device=device, dtype=torch.long)
-
-
-episode_durations = []
-
-
-def plot_durations():
-    plt.figure(2)
-    plt.clf()
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
-    plt.title('Training...')
-    plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
-    # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
-
-    plt.pause(0.001)  # pause a bit so that plots are updated
-    if is_ipython:
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
 
 
 def optimize_model():
