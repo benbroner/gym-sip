@@ -42,12 +42,12 @@ class SippyState:
         return self.game.shape
 
     def a_odds(self):
-        return int(self.game.iloc[self.index, 9])
+        return int(self.game.iloc[self.index, 12])
 
     def h_odds(self):
-        return int(self.game.iloc[self.index, 10])
+        return int(self.game.iloc[self.index, 13])
 
-    def game_over():
+    def game_over(self):
         return self.index < 0
 
     def ids(self):
@@ -66,25 +66,37 @@ class SipEnv(gym.Env):
         self.game = self.new_game()
         self.money = AUM
         self.last_bet = None  # 
-
+        self.cur_state = None  # need to store 
+        self.action = None
         self.hedges = []
+        self.odds = ()  # storing current odds as 2-tuple
 
 
     def step(self, action):  # action given to us from test.py
-        prev_state = cur_state
-        cur_state, done = self.game.next()
-        state = cur_state - prev_state
+        self.action = action    
 
-        if not done:
-            reward = self.action(action)
+        prev_state = self.cur_state
 
-        return cur_state, reward, done, None
+        self.cur_state, done = self.game.next()  # goes to the next timestep in current game
+        state = self.cur_state - prev_state
 
+        self._odds()
+
+        if self.is_valid(done):
+            if self.last_bet is not None and done is True:  # unhedged bet, lose bet1 amt
+                reward = -self.last_bet.amt
+            else:
+                reward = 0  # 0 reward for non-valid bet
+            return state, reward, done, None  
+        else:
+            reward = self.act()
+
+        return state, reward, done, None
 
     def next(self):
-        self.new_game()
-        cur_state, done = self.game.next()
-        return cur_state
+        self.game = self.new_game()
+        self.cur_state, done = self.game.next()
+        return self.cur_state
 
     def reset(self):
         self.money = AUM
@@ -95,17 +107,43 @@ class SipEnv(gym.Env):
         game_id = random.choice(list(self.games.keys()))
         return SippyState(self.games[game_id])
 
-    def _reward(self, action):
-        if action == ACTION_SKIP:
-            return 0
-        if self.last_bet == None:
-            self.new_hedge(action)
-        else:
-            self.end_hedge(action)
+    def act(self):
+        if self.action == ACTION_SKIP:
+            return 0  # if skip, reward = 0
 
-    def new_hedge(self, action):
-        if action == ACTION_BUY_A:
-            bet_amt = h.bet_amt(self.money)
+        if self.last_bet is None:  # if last bet != None, then this bet is a hedge
+            self._bet()
+            return 0
+        else:
+            net = self._hedge()
+            self.money += net
+            return net
+
+
+    def _bet(self):
+        bet_amt = h._bet_amt(self.money)
+        self.last_bet = Bet(bet_amt, self.action, self.odds)
+        # we don't update self.money because we don't want it to get a negative reward on _bet()
+
+    def is_valid(self, done):
+        # is_valid does NOT check for strict profit on hedge
+        # it only checks for zero odds and if game is over
+        if self.odds == (0, 0):
+            return False
+        elif done == True:
+            return False
+        else:
+            return True
+
+    def _hedge(self):
+        hedge_amt = h._hedge_amt(self.last_bet, self.odds)
+        hedged_bet = Bet(hedge_amt, self.action, self.odds)
+        hedge = Hedge(self.last_bet, hedged_bet)
+        self.hedges.append(hedge)
+        return hedge.net
+
+    def _odds(self):
+        self.odds = (self.cur_state[12], self.cur_state[13])
 
     def __repr__(self):
         print('index in game: ' + str(self.state.index))
@@ -122,11 +160,11 @@ class Bet:
     # possibly using line numbers where they update -(1/(x-5)). x=5 is end of game
 
     # maybe bets should be stored as a step (csv line) and the bet amt and index into game.
-    def __init__(self, amt, team, a, h):
+    def __init__(self, amt, action, odds):
         self.amt = amt
-        self.team = team  # 0 for away, 1 for home
-        self.a_odds = a
-        self.h_odds = h
+        self.team = action  # 0 for away, 1 for home
+        self.a_odds = odds[0]
+        self.h_odds = odds[1]
 
     def __repr__(self)
         # simple console log of a bet
@@ -137,7 +175,10 @@ class Bet:
 
 class Hedge:
     def __init__(self, bet, bet2):
+        # input args is two Bets
         self.net = h._net(bet, bet2)
+        self.bet = bet
+        self.bet2 = bet2
 
     def __repr__(self):
         self.bet._print()
@@ -146,5 +187,4 @@ class Hedge:
 
     # TODO 
     # add function that writes bets to CSV for later analysis
-
 

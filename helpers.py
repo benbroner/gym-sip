@@ -66,15 +66,28 @@ def _act(act):
         return 'action outside of defined actions'
 
 
-def _net(bet, bet2):
-    # given two Bets, calculates the profit of the hedge
-    # input: 2 Bet classes, output float
-
+def _net(hedge):
+    # given a bet pair (bet + hedge)
+    # input: Hedge class, output float
+    # env.is_valid() should have already caught zero odds lines
+    # a full hedge equates the profit, so
+    # bet.amt * _eq(bet.a) should be equal to bet2.amt * _eq(bet2.h)
+    bet = hedge.bet
+    bet2 = hedge.bet
+    bet_sum = bet.amt + bet2.amt
     if bet.team == 0:
-        return bet.amt * _eq(bet.a_odds) - bet2.amt * _eq(bet2.h_odds)
-    elif bet.team == 1:
-        return bet.amt * _eq(bet.h_odds) - bet2.amt * _eq(bet2.a_odds)
+        return bet.amt * _eq(bet.a_odds) - bet_sum
+    else:
+        return bet.amt * _eq(bet.h_odds) - bet_sum
 
 
 def _bet_amt(money):
     return 0.05 * money + 100
+
+
+def _hedge_amt(bet, cur_odds):
+    # takes in Bet 1 and calculates the 
+    if bet.team == 0:
+        return (bet.amt * _eq(bet.a_odds)) / _eq(cur_odds[1])
+    else:
+        return (bet.amt * _eq(bet.h_odds)) / _eq(cur_odds[0])
