@@ -3,16 +3,22 @@ import pandas as pd
 import numpy as np
 
 
-def get_games(fn):
+def get_games(fn='nba2.csv'):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
     df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
     df = dates(df)
     # df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
-    df = df.astype(np.float32)
+    # df = df.astype(np.float32)
     games = chunk(df, 'game_id')
     return games
 
+def remove_missed_wins(games):
+    # takes in a dictionary of games 
+    for g_id in list(games.keys()):
+        if len(games[g_id]['a_win'].unique()) + len(games[g_id]['h_win'].unique()) != 3:
+            del games[g_id]
+    return games
 
 def get_df(fn):
     raw = csv(fn)
@@ -22,12 +28,19 @@ def get_df(fn):
     return df
 
 
+def df_info(df):
+    # given pd df, return the general important info in console
+    # num games, teams, etc 
+    pass
+
+
 def split(df, col):
     # give column to be predicted given all others in csv
     # df is pd, col is string
     Y = df[col]
     X = df
     return X, Y
+
 
 def csv(fn):
     # takes in file name, returns pandas dataframe
@@ -46,10 +59,11 @@ def one_hots(df, cols):
 
 def dates(df):
     # convert ['lms_date', 'lms_time'] into datetimes
-    df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
-    df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
-    df['datetime'] = pd.to_numeric(df['datetime'])
+    # df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
+    # df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
+    # df['datetime'] = pd.to_numeric(df['datetime'])
     df = df.drop(['lms_date', 'lms_time'], axis=1)
+    # df = df.drop(df['datetime'], axis=1)
     return df
 
 
@@ -57,6 +71,9 @@ def chunk(df, col):
     # returns a python dict of pandas dfs, splitting the df arg by unique col value
     # df type pd df, col type string
     games = {key: val for key, val in df.groupby(col)}
+    print(len(games))
+    remove_missed_wins(games)
+    print(len(games))
     return games
 
 
