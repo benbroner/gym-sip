@@ -1,16 +1,41 @@
 # helper functions for Sip OpenAI Gym environment
 import pandas as pd
 import numpy as np
+from torch.utils.data import Dataset, DataLoader
+
+class Df(Dataset):
+    # class for torch.DataLoader
+    # takes in numpy array
+    def __init__(self, np_df):
+        # self.to_tensor = torch.tensor()
+        self.data_len = len(np_df)
+        self.data = np_df
+        print(self.data_len)
+
+    def __getitem__(self, index):
+        line = self.data[index]
+        line_tensor = torch.tensor(line)
+        print(line_tensor.dtype)
+        return line_tensor
+
+    def __len__(self):
+        return self.data_len
+
+headers = [# 'a_team', 'h_team', 'sport', 'league', 
+                'game_id', 'cur_time',
+                'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
+                'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
 
 
-def get_games(fn='nba2.csv'):
+def get_games(fn='/data/nba2.csv'):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
-    df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
-    df = dates(df)
+    print(raw)
+    # df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
+    # df = dates(raw)
     # df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
     # df = df.astype(np.float32)
-    games = chunk(df, 'game_id')
+    games = chunk(raw, 'game_id')
     return games
 
 def remove_missed_wins(games):
@@ -20,7 +45,7 @@ def remove_missed_wins(games):
             del games[g_id]
     return games
 
-def get_df(fn):
+def get_df(fn='/data/nba2.csv'):
     raw = csv(fn)
     df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
     df = dates(df)
@@ -42,10 +67,11 @@ def split(df, col):
     return X, Y
 
 
+
 def csv(fn):
     # takes in file name, returns pandas dataframe
     # fn is type string
-    df = pd.read_csv(fn, dtype='unicode')
+    df = pd.read_csv(fn, usecols=headers)
     df.dropna()
     return df.copy()
 
@@ -71,10 +97,13 @@ def chunk(df, col):
     # returns a python dict of pandas dfs, splitting the df arg by unique col value
     # df type pd df, col type string
     games = {key: val for key, val in df.groupby(col)}
+
     print(len(games))
-    remove_missed_wins(games)
+    games = remove_missed_wins(games)
     print(len(games))
+
     return games
+
 
 
 def _eq(odd):

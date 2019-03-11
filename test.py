@@ -35,7 +35,6 @@ class ReplayMemory(object):
 
 
 class Net(nn.Module):
-
     def __init__(self, input_size, hidden_size, output_size):
         super(Net, self).__init__()
 
@@ -69,16 +68,14 @@ def select_action(state):
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
     s = torch.tensor(state, device=device)
-    s = s.reshape(-1, 14)
+    s = s.reshape(1, 14)
     # print(s)
     if sample > eps_threshold:
         with torch.no_grad():
-            # t.max(1) will return largest column value of each row.
-            # second column on max result is index of where max element was
-            # found, so we pick action with the larger expected reward.
-            return policy_net(s).max(1)[1].view(1, 1)
+
+            return policy_net(s).max(1)[1].view(1, 1, 1)
     else:
-        return torch.tensor([[random.randrange(3)]], device=device, dtype=torch.long)
+        return torch.tensor([[random.randrange(2)]], device=device, dtype=torch.long)
 
 
 def optimize_model():
@@ -88,7 +85,7 @@ def optimize_model():
     batch = Transition(*zip(*transitions))
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.uint8)
-    non_final_next_states = torch.cat([torch.tensor(s) for s in batch.next_state
+    non_final_next_states = torch.cat([s for s in batch.next_state
                                                 if s is not None])
     state_batch = torch.cat(batch.state)
     action_batch = torch.cat(batch.action)
@@ -148,13 +145,13 @@ for ep in range(EPISODES):
     cur_state = env.cur_state
     s = (cur_state - prev_state)
     # s = cur_state
-    # recurrent would be
     # print(s)
     # TODO can't train on derivative because datetime adding does not work
 
     for i in range(EPOCHS):
 
         action = select_action(s)  # selecting action using deep q network
+        print(action)
         ret_state, r, done, info = env.step(action)
         r_tensor = torch.tensor([r], device=device)
 
@@ -171,7 +168,7 @@ for ep in range(EPISODES):
         # Store the transition in memory
         memory.push(s, action, next_state, r_tensor)
 
-        s = torch.tensor(next_state)
+        s = next_state
 
         optimize_model()
     # Update the target network, copying all weights and biases in DQN
