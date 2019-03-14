@@ -4,19 +4,19 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
 class Df(Dataset):
-    # class for torch.DataLoader
-    # takes in numpy array
-    def __init__(self, np_df):
-        # self.to_tensor = torch.tensor()
+    def __init__(self, np_df, unscaled):
         self.data_len = len(np_df)
         self.data = np_df
+        self.unscaled_data = unscaled
         print(self.data_len)
 
     def __getitem__(self, index):
+        # line = self.data.iloc[index]
         line = self.data[index]
         line_tensor = torch.tensor(line)
-        print(line_tensor.dtype)
-        return line_tensor
+        unscaled_line = self.unscaled_data[index]
+        unscaled_tensor = torch.tensor(unscaled_line)        
+        return line_tensor, unscaled_tensor
 
     def __len__(self):
         return self.data_len
@@ -56,10 +56,11 @@ def get_df(fn='/data/nba2.csv'):
 def df_info(df):
     # given pd df, return the general important info in console
     # num games, teams, etc 
+    # TODO
     pass
 
 
-def split(df, col):
+def label_split(df, col):
     # give column to be predicted given all others in csv
     # df is pd, col is string
     Y = df[col]
@@ -67,6 +68,9 @@ def split(df, col):
     return X, Y
 
 
+def train_test(df, train_frac=0.6):
+    # TODO
+    pass
 
 def csv(fn):
     # takes in file name, returns pandas dataframe
@@ -85,9 +89,9 @@ def one_hots(df, cols):
 
 def dates(df):
     # convert ['lms_date', 'lms_time'] into datetimes
-    # df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
-    # df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
-    # df['datetime'] = pd.to_numeric(df['datetime'])
+    df['datetime'] = df['lms_date'] + ' ' + df['lms_time']
+    df['datetime'] = pd.to_datetime(df['datetime'], infer_datetime_format=True, errors='coerce')
+    df['datetime'] = pd.to_numeric(df['datetime'])
     df = df.drop(['lms_date', 'lms_time'], axis=1)
     # df = df.drop(df['datetime'], axis=1)
     return df
@@ -103,7 +107,6 @@ def chunk(df, col):
     print(len(games))
 
     return games
-
 
 
 def _eq(odd):

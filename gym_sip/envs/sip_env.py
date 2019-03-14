@@ -2,6 +2,7 @@ import gym
 import random
 import helpers as h
 import numpy as np
+
 # Macros for actions
 ACTION_BUY_A = 0
 ACTION_BUY_H = 1
@@ -20,9 +21,11 @@ class SippyState:
         self.game_len = len(game)  # used often
         self.id = self.ids()[0]
         self.index = self.game_len - 1
-
+        # self.game_a_odds = self.game['a_odds']
+        # self.game_h_odds = self.game['h_odds']
         # since the file was written append, we are decrementing from end
         self.cur_state = self.game.iloc[self.index]
+        print(self.cur_state)
 
         print("imported {}".format(self.id))
 
@@ -31,6 +34,10 @@ class SippyState:
             return None, True
 
         self.cur_state = self.game.iloc[self.index, 0:]
+        # print(cur_state)
+
+        if self.cur_state is None:
+            return None, True
 
         self.index -= 1
         return self.cur_state, False
@@ -43,9 +50,11 @@ class SippyState:
 
     def a_odds(self):
         return int(self.game.iloc[self.index, 12])
+        # return int(self.game_a_odds[self.index])
 
     def h_odds(self):
         return int(self.game.iloc[self.index, 13])
+        # return int(self.game_h_odds[self.index])
 
     def game_over(self):
         return self.index < 0
@@ -63,7 +72,8 @@ class SipEnv(gym.Env):
 
     def __init__(self, fn):
         self.games = h.get_games(fn)
-        self.game = self.new_game()
+        self.game = None
+        self.new_game()
         self.money = AUM
         self.last_bet = None  # 
         self.cur_state = self.game.cur_state  # need to store
@@ -76,38 +86,45 @@ class SipEnv(gym.Env):
 
     def step(self, action):  # action given to us from test.py
         self.action = action    
-
         prev_state = self.cur_state
 
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
-        state = self.cur_state - prev_state
+        # state = 
+        if done is True:
+            return None, 0, True, self.odds
 
         self._odds()
+        print(self.odds)
+        
 
         if not self.is_valid(done):
-            if self.last_bet is not None and done is True:  # unhedged bet, lose bet1 amt
+            if self.last_bet is not None:  # unhedged bet, lose bet1 amt
                 reward = -self.last_bet.amt
             else:
                 reward = 0  # 0 reward for non-valid bet
-            return state, reward, done, None  
+            return self.cur_state, reward, done, None  
         else:
             reward = self.act()
 
-        return state, reward, done, None
+        return self.cur_state, reward, done, self._odds()
 
     def next(self):
-        self.game = self.new_game()
+        self.new_game()
         self.cur_state, done = self.game.next()
-        return self.cur_state
+        return self.cur_state, done
 
     def reset(self):
         self.money = AUM
         return self.next()
 
     def new_game(self):
-        self.last_bet = None  # once a game has ended, bets are cleared 
+        self.last_bet = None  # once a game has ended, bets are cleared
+
         game_id = random.choice(list(self.games.keys()))
-        return SippyState(self.games[game_id])
+        self.game = SippyState(self.games[game_id])
+        while self.game is None:
+            del self.games[game_id]
+            self.new_game()
 
     def act(self):
         if self.action == ACTION_SKIP:
@@ -117,6 +134,7 @@ class SipEnv(gym.Env):
             return 0
         else:
             net = self._hedge()
+            # print(net)
             self.money += net
             return net
 
@@ -128,7 +146,7 @@ class SipEnv(gym.Env):
     def is_valid(self, done):
         # is_valid does NOT check for strict profit on hedge
         # it only checks for zero odds and if game is over
-        if self.odds == (0, 0):
+        if self.odds == (0, 0) or self.odds == None:
             return False
         elif done:
             return False
@@ -143,7 +161,7 @@ class SipEnv(gym.Env):
         return hedge.net
 
     def _odds(self):
-        self.odds = (self.cur_state[12], self.cur_state[13])
+        self.odds = (self.cur_state[10], self.cur_state[11])
 
     def get_state(self):
         return self.cur_state

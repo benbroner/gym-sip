@@ -5,6 +5,7 @@ import gym_sip
 import random
 import numpy as np
 
+EPOCHS = 1000
 
 # main_init()
 env = gym.make('Sip-v0').unwrapped
@@ -14,26 +15,30 @@ steps_done = 0
 reward_sum = 0
 
 # init
-prev_state = env.cur_state
-cur_state = env.cur_state
+prev_state = env.game.cur_state
+cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
-for ep in range(EPISODES):
 
+for ep in range(5):
 
     for i in range(EPOCHS):
-        
-        s, r, d, info = env.step(random.randrange(0, env.action_space.n))
+        # num of games
+        s, r, d, odds = env.step(random.randrange(0, env.action_space.n))
+        # print(odds)
 
-        if not done:
+        if not d:
+            prev_data = cur_state
+            cur_state = s
             next_state = cur_state - prev_state
             # next_state = cur_state
         else:
+            cur_state, d = env.next()
             next_state = None
 
         s = next_state
 
-        optimize_model()
+        # optimize_model()
     # Update the target network, copying all weights and biases in DQN
-    if ep % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
+    # if ep % TARGET_UPDATE == 0:
+    #     target_net.load_state_dict(policy_net.state_dict())
