@@ -20,12 +20,11 @@ class SippyState:
         self.game = game  # store in State for repeated access
         self.game_len = len(game)  # used often
         self.id = self.ids()[0]
-        self.index = self.game_len - 1
+        self.index = 0
         # self.game_a_odds = self.game['a_odds']
         # self.game_h_odds = self.game['h_odds']
         # since the file was written append, we are decrementing from end
         self.cur_state = self.game.iloc[self.index]
-        print(self.cur_state)
 
         print("imported {}".format(self.id))
 
@@ -33,17 +32,18 @@ class SippyState:
         if self.game_over():
             return None, True
 
+        # print(self.game.iloc[self.index, 0:])
         self.cur_state = self.game.iloc[self.index, 0:]
-        # print(cur_state)
 
         if self.cur_state is None:
             return None, True
 
-        self.index -= 1
+        self.index += 1
         return self.cur_state, False
 
     def reset(self):
-        self.index = len(self.game - 1)
+        self.index = 0
+        # self.index = len(self.game - 1)
 
     def shape(self):
         return self.game.shape
@@ -57,7 +57,7 @@ class SippyState:
         # return int(self.game_h_odds[self.index])
 
     def game_over(self):
-        return self.index < 0
+        return self.index > (self.game_len - 1)
 
     def ids(self):
         ids = self.game['game_id'].unique()
@@ -85,7 +85,8 @@ class SipEnv(gym.Env):
                                                 dtype=np.float32)
 
     def step(self, action):  # action given to us from test.py
-        self.action = action    
+        self.action = action   
+        print(action) 
         prev_state = self.cur_state
 
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
@@ -94,8 +95,7 @@ class SipEnv(gym.Env):
             return None, 0, True, self.odds
 
         self._odds()
-        print(self.odds)
-        
+        print(self.odds) 
 
         if not self.is_valid(done):
             if self.last_bet is not None:  # unhedged bet, lose bet1 amt
@@ -119,11 +119,11 @@ class SipEnv(gym.Env):
 
     def new_game(self):
         self.last_bet = None  # once a game has ended, bets are cleared
-
         game_id = random.choice(list(self.games.keys()))
         self.game = SippyState(self.games[game_id])
-        while self.game is None:
+        if self.game is None:
             del self.games[game_id]
+            print('deleted a game')
             self.new_game()
 
     def act(self):
