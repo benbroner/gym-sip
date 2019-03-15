@@ -144,11 +144,11 @@ plt.xlabel("score sum", fontsize=10)
 plt.ylabel("hedge net profit / bet sum", fontsize=10)
 for hedge in env.hedges:
     # fig = plt.figure(1)
-    bet_sum = hedge.bet.amt + hedge.bet2.amt
+    # bet_sum = hedge.bet.amt + hedge.bet2.amt
     score = hedge.bet.cur_state[3]  # a_pts
     score2 = hedge.bet.cur_state[4] # h_pts
     xs.append(score + score2)
-    nets.append(hedge.net/bet_sum)
+    nets.append(hedge.net/hedge.bet.amt)
     hedge.__repr__()
 # env.hedges[]
 plt.scatter(xs, nets, alpha=0.5)
