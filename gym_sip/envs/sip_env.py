@@ -135,21 +135,17 @@ class SipEnv(gym.Env):
             self._bet()
             return 0
         elif self.action != self.last_bet.team:
-            # net = 
             net = self._hedge()
-            # print(net)
-            # print(self.money)
-            # if self.game_hedges == 0:
             self.money += net
-            self.game_hedges += 1
+            print(self.money)
             return net
         else:
             return 0
 
     def _bet(self):
+        # we don't update self.money because we don't want it to get a negative reward on _bet()
         amt = h.bet_amt(self.money)
         self.last_bet = Bet(amt, self.action, self.odds)
-        # we don't update self.money because we don't want it to get a negative reward on _bet()
 
     def is_valid(self, done):
         # is_valid does NOT check for strict profit on hedge
@@ -164,12 +160,15 @@ class SipEnv(gym.Env):
     def _hedge(self):
         hedge_amt = h.hedge_amt(self.last_bet, self.odds)
         hedged_bet = Bet(hedge_amt, self.action, self.odds)
-        hedge = Hedge(self.last_bet, hedged_bet)
-        if hedge.net <= 0:
+        net = h.net(self.last_bet, hedged_bet)
+        if net > 0:
+            hedge = Hedge(self.last_bet, hedged_bet)
+            self.hedges.append(hedge)
+            self.last_bet = None
+            self.game_hedges += 1
+            return hedge.net
+        else:
             return 0
-        self.hedges.append(hedge)
-        self.last_bet = None
-        return hedge.net
 
     def _odds(self):
         self.odds = (self.cur_state[10], self.cur_state[11])
@@ -213,7 +212,7 @@ class Hedge:
         self.net = h.net(bet, bet2)
         self.bet = bet
         self.bet2 = bet2
-        # self.__repr__()
+        self.__repr__()
 
     def __repr__(self):
         self.bet.__repr__()

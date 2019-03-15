@@ -141,9 +141,9 @@ def net(bet, bet2):
     # bet.amt * _eq(bet.a) should be equal to bet2.amt * _eq(bet2.h)
     bet_sum = bet.amt + bet2.amt
     if bet.team == 0:
-        return bet.amt * _eq(bet.a_odds) - bet_sum
+        return bet.amt * _eq(bet.a_odds) - bet2.amt
     else:
-        return bet.amt * _eq(bet.h_odds) - bet_sum
+        return bet.amt * _eq(bet.h_odds) - bet2.amt
 
 
 def bet_amt(money):
@@ -153,6 +153,6 @@ def bet_amt(money):
 def hedge_amt(bet, cur_odds):
     # takes in Bet 1 and calculates the 
     if bet.team == 0:
-        return (bet.amt * _eq(bet.a_odds)) / _eq(cur_odds[1])
+        return (bet.amt * (_eq(bet.a_odds) + 1)) / (_eq(cur_odds[1]) + 1)
     else:
-        return (bet.amt * _eq(bet.h_odds)) / _eq(cur_odds[0])
+        return (bet.amt * (_eq(bet.h_odds) + 1)) / (_eq(cur_odds[0]) + 1)
