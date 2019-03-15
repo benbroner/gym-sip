@@ -98,14 +98,17 @@ class SipEnv(gym.Env):
         self._odds()
         # print(self.game_hedges) 
 
-        if not self.is_valid(done):
-            if self.last_bet is not None and done is True:  # unhedged bet, lose bet1 amt
-                reward = -self.last_bet.amt
-            else:
-                reward = 0  # 0 reward for non-valid bet
+        if self.is_valid(done):
+            reward = self.act()            
             return self.cur_state, reward, done, None  
         else:
-            reward = self.act()
+            if self.last_bet is not None and done is True:  # unhedged bet, lose bet1 amt
+                reward = -self.last_bet.amt
+                self.money -= reward
+                print("lost")
+                self.last_bet.__repr__()
+            else:
+                return 0
 
         return self.cur_state, reward, done, self._odds()
 
@@ -161,14 +164,14 @@ class SipEnv(gym.Env):
         hedge_amt = h.hedge_amt(self.last_bet, self.odds)
         hedged_bet = Bet(hedge_amt, self.action, self.odds)
         net = h.net(self.last_bet, hedged_bet)
-        if net > 0:
-            hedge = Hedge(self.last_bet, hedged_bet)
-            self.hedges.append(hedge)
-            self.last_bet = None
-            self.game_hedges += 1
-            return hedge.net
-        else:
-            return 0
+        # if net > 0:
+        hedge = Hedge(self.last_bet, hedged_bet)
+        self.hedges.append(hedge)
+        self.last_bet = None
+        self.game_hedges += 1
+        return hedge.net
+        # else:
+        #     return 0
 
     def _odds(self):
         self.odds = (self.cur_state[10], self.cur_state[11])
