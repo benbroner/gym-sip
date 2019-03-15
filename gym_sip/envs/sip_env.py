@@ -198,14 +198,14 @@ class SipEnv(gym.Env):
         hedge_amt = h.hedge_amt(self.last_bet, self.odds)
         hedged_bet = Bet(hedge_amt, self.action, self.odds, self.cur_state)
         net = h.net(self.last_bet, hedged_bet)
-        if net > 0:
-            hedge = Hedge(self.last_bet, hedged_bet)
-            self.hedges.append(hedge)
-            self.last_bet = None
-            self.game_hedges += 1
-            return hedge.net
-        else:
-            return 0
+        # if net > 0:
+        hedge = Hedge(self.last_bet, hedged_bet)
+        self.hedges.append(hedge)
+        self.last_bet = None
+        self.game_hedges += 1
+        return hedge.net
+        # else:
+        #     return 0
 
     def _odds(self):
         self.odds = (self.cur_state[10], self.cur_state[11])

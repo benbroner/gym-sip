@@ -107,16 +107,26 @@ s = (cur_state - prev_state)
 dqn = DQN()
 num_games = 80
 game_num = 0
-for ep in range(num_games):
-    s, d = env.next()
+
+reward_list = []
+time_list = []
+i = 0
+cols = [] 
+# for ep in range(num_games):
+while len(list(env.games.keys())) > 0:
+    try:
+        s, d = env.next()
+    except IndexError:
+        break;
     game_num += 1
     for i in range(EPOCHS):
         a = dqn.choose_action(s)
-        # if a == 1:
-        print(env.action_space)
-        print(a)
         s, r, d, odds = env.step(a)
         if s is not None:
+            cols.append(i)
+            i += 1
+            reward_list.append(r)
+            time_list.append(s[8])
             dqn.store_transition(s, a, r, odds)
 
             if dqn.memory_counter > MEMORY_CAPACITY:
@@ -127,30 +137,54 @@ for ep in range(num_games):
                 next_state = cur_state - prev_state
                 # next_state = cur_state
             else:
-                cur_state, d = env.next()
-                next_state = None
+                break
 
             s = next_state
         else:
             break
+np_rl = np.array(reward_list)
+np_rl = np_rl.astype(float)
+avg_ax = plt.scatter(time_list, cols, s=np_rl, c=cols, alpha=0.5)
+plt.show()
 
-        # optimize_model()
-    # Update the target network, copying all weights and biases in DQN
-    # if ep % TARGET_UPDATE == 0:
-    #     target_net.load_state_dict(policy_net.state_dict())
+
+
 xs = []
+xas = []
 nets = []
-plt.xlabel("score sum", fontsize=10)
-plt.ylabel("hedge net profit / bet sum", fontsize=10)
+to_starts = []
+ax = plt.subplot()
+avg_ax = plt.subplot()
+
+# ax = plt.subplot(xlabel="score sum", ylabel="hedge net profit / bet sum")
+avg_ax = plt.subplot(xlabel="avg of bet scores sum", ylabel="last mod to start bet avgs")
+
+i = 0
+cols = [] 
+
+np.random.rand(len(env.hedges))
 for hedge in env.hedges:
+    cols.append(i)
+    i += 1
     # fig = plt.figure(1)
     # bet_sum = hedge.bet.amt + hedge.bet2.amt
     score = hedge.bet.cur_state[3]  # a_pts
     score2 = hedge.bet.cur_state[4] # h_pts
+
+    scorea = hedge.bet2.cur_state[3]  # a_pts
+    scorea2 = hedge.bet2.cur_state[4] # h_pts
+    
+    bet_score_avg = (score + score2) / 2 
+    bet2_score_avg = (scorea + scorea2) / 2 
+
+    xas_avg = (bet_score_avg + bet2_score_avg) / 2
+
     xs.append(score + score2)
+    xas.append(xas_avg)
+    to_starts.append((hedge.bet.cur_state[9] + hedge.bet2.cur_state[9]) / 2)
     nets.append(hedge.net/hedge.bet.amt)
     hedge.__repr__()
 # env.hedges[]
-plt.scatter(xs, nets, alpha=0.5)
-plt.show()
 print(env.money)
+ax = plt.scatter(xs, nets, c=cols, alpha=0.5)
+avg_ax = plt.scatter(xas, to_starts, c=cols, alpha=0.5)
