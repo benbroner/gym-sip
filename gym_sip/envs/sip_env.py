@@ -73,6 +73,7 @@ class SipEnv(gym.Env):
     def __init__(self, fn):
         self.games = h.get_games(fn)
         self.game = None
+        self.game_id = 0
         self.new_game()
         self.money = AUM
         self.last_bet = None  # 
@@ -94,9 +95,10 @@ class SipEnv(gym.Env):
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
         # if self.cur_state is None:
         #     return None, 0, True, self.odds
+        if done is True:
+            del self.games[self.game_id]
 
         if done is True and self.last_bet is not None:
-
             print('forgot to bet')
             self.last_bet.__repr__()
             print(self.money)
@@ -120,6 +122,7 @@ class SipEnv(gym.Env):
         if self.is_valid():
             reward = self.act()
 
+        print(self.money)
         return self.cur_state, reward, done, self.odds
 
     def next(self):
@@ -135,16 +138,16 @@ class SipEnv(gym.Env):
         self.game_hedges = 0
         self.follow_bets = 0
         self.last_bet = None  # once a game has ended, bets are cleared
-        game_id = random.choice(list(self.games.keys()))
-        self.game = SippyState(self.games[game_id])
+        self.game_id = random.choice(list(self.games.keys()))
+        self.game = SippyState(self.games[self.game_id])
         if self.game is None:
-            del self.games[game_id]
+            del self.games[self.game_id]
             print('deleted a game')
             self.new_game()
 
     def act(self):
-
         if self.action == ACTION_SKIP:
+            # print('skipped')
             return 0  # if skip, reward = 0
         elif self.last_bet is None:  # if last bet != None, then this bet is a hedge
             self._bet()
@@ -174,13 +177,14 @@ class SipEnv(gym.Env):
         else:
             net = self._hedge()
             self.money += net
-            print(self.money)
+            
             return net
 
     def _bet(self):
         # we don't update self.money because we don't want it to get a negative reward on _bet()
         amt = h.bet_amt(self.money)
-        self.last_bet = Bet(amt, self.action, self.odds)
+        self.last_bet = Bet(amt, self.action, self.odds, self.cur_state)
+        self.last_bet.__repr__()
 
     def is_valid(self):
         # is_valid does NOT check for strict profit on hedge
@@ -192,7 +196,7 @@ class SipEnv(gym.Env):
 
     def _hedge(self):
         hedge_amt = h.hedge_amt(self.last_bet, self.odds)
-        hedged_bet = Bet(hedge_amt, self.action, self.odds)
+        hedged_bet = Bet(hedge_amt, self.action, self.odds, self.cur_state)
         net = h.net(self.last_bet, hedged_bet)
         if net > 0:
             hedge = Hedge(self.last_bet, hedged_bet)
@@ -225,12 +229,12 @@ class Bet:
     # possibly using line numbers where they update -(1/(x-5)). x=5 is end of game
 
     # maybe bets should be stored as a step (csv line) and the bet amt and index into game.
-    def __init__(self, amt, action, odds):
+    def __init__(self, amt, action, odds, cur_state):
         self.amt = amt
         self.team = action  # 0 for away, 1 for home
         self.a_odds = odds[0]
         self.h_odds = odds[1]
-
+        self.cur_state = cur_state
         # self.__repr__()
 
     def __repr__(self):

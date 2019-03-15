@@ -3,6 +3,8 @@ import gym_sip
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt 
+
 # import deepq as dqn
 import random
 import numpy as np
@@ -103,12 +105,16 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 50
+num_games = 80
+game_num = 0
 for ep in range(num_games):
     s, d = env.next()
+    game_num += 1
     for i in range(EPOCHS):
         a = dqn.choose_action(s)
-
+        # if a == 1:
+        print(env.action_space)
+        print(a)
         s, r, d, odds = env.step(a)
         if s is not None:
             dqn.store_transition(s, a, r, odds)
@@ -132,7 +138,19 @@ for ep in range(num_games):
     # Update the target network, copying all weights and biases in DQN
     # if ep % TARGET_UPDATE == 0:
     #     target_net.load_state_dict(policy_net.state_dict())
-
+xs = []
+nets = []
+plt.xlabel("score sum", fontsize=10)
+plt.ylabel("hedge net profit / bet sum", fontsize=10)
 for hedge in env.hedges:
+    # fig = plt.figure(1)
+    bet_sum = hedge.bet.amt + hedge.bet2.amt
+    score = hedge.bet.cur_state[3]  # a_pts
+    score2 = hedge.bet.cur_state[4] # h_pts
+    xs.append(score + score2)
+    nets.append(hedge.net/bet_sum)
     hedge.__repr__()
+# env.hedges[]
+plt.scatter(xs, nets, alpha=0.5)
+plt.show()
 print(env.money)

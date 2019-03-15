@@ -139,7 +139,7 @@ def act(a):
     if a == 0:
         return 'BOUGHT AWAY'
     elif a == 1:
-        return 'BOUGHT HOME'
+        return 'HEDGED HOME'
     elif a == 2:
         return 'SKIP'
     else: 
