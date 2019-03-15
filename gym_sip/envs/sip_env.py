@@ -80,6 +80,7 @@ class SipEnv(gym.Env):
         self.action = None
         self.hedges = []
         self.game_hedges = 0
+        self.follow_bets = 0
         self.odds = ()  # storing current odds as 2-tuple
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low=-100000000., high=100000000., shape=(self.game.shape()[1],),
@@ -105,7 +106,7 @@ class SipEnv(gym.Env):
 
         self._odds()
 
-        if self.is_valid(done):
+        if self.is_valid():
             reward = self.act()
 
         return self.cur_state, reward, done, self.odds
@@ -121,6 +122,7 @@ class SipEnv(gym.Env):
 
     def new_game(self):
         self.game_hedges = 0
+        self.follow_bets = 0
         self.last_bet = None  # once a game has ended, bets are cleared
         game_id = random.choice(list(self.games.keys()))
         self.game = SippyState(self.games[game_id])
@@ -130,28 +132,47 @@ class SipEnv(gym.Env):
             self.new_game()
 
     def act(self):
+
         if self.action == ACTION_SKIP:
             return 0  # if skip, reward = 0
         elif self.last_bet is None:  # if last bet != None, then this bet is a hedge
             self._bet()
             return 0
-        elif self.action != self.last_bet.team:
+        #elif self.action != self.last_bet.team:
+        elif self.last_bet.team == self.action:
+
+            new_amt = self.last_bet.amt + 100   # 100 is arbitrary
+
+            if self.action == 0:
+                x = (h._eq(self.last_bet.a_odds) + h._eq(self.odds[0]))/2
+                new_odd = h.eq_to_odd(x)
+                self.last_bet.amt = new_amt
+                self.last_bet.odd = new_odd
+
+            else:
+                x = (h._eq(self.last_bet.h_odds) + h._eq(self.odds[1]))/2
+                new_odd = h.eq_to_odd(x)
+                self.last_bet.amt = new_amt
+                self.last_bet.odd = new_odd
+            self.follow_bets += 1
+            print("lets fucking hammer this shit boi  anand you a dawg e sucks at math low key")
+            print(self.follow_bets)
+
+        else:
             net = self._hedge()
             self.money += net
             print(self.money)
             return net
-        else:
-            return 0
 
     def _bet(self):
         # we don't update self.money because we don't want it to get a negative reward on _bet()
         amt = h.bet_amt(self.money)
         self.last_bet = Bet(amt, self.action, self.odds)
 
-    def is_valid(self, done):
+    def is_valid(self):
         # is_valid does NOT check for strict profit on hedge
         # it only checks for zero odds and if game is over
-        if self.odds == (0, 0) or self.odds == None or done:
+        if self.odds == (0, 0) or self.odds == None:
             return False
         else:
             return True
@@ -196,6 +217,7 @@ class Bet:
         self.team = action  # 0 for away, 1 for home
         self.a_odds = odds[0]
         self.h_odds = odds[1]
+
         # self.__repr__()
 
     def __repr__(self):
