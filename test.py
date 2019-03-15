@@ -5,7 +5,7 @@ import gym_sip
 import random
 import numpy as np
 
-EPOCHS = 1000
+EPOCHS = 50000
 
 # main_init()
 env = gym.make('Sip-v0').unwrapped
@@ -18,7 +18,6 @@ reward_sum = 0
 prev_state = env.game.cur_state
 cur_state = env.game.cur_state
 s = (cur_state - prev_state)
-
 
 for ep in range(5):
 
@@ -42,3 +41,7 @@ for ep in range(5):
     # Update the target network, copying all weights and biases in DQN
     # if ep % TARGET_UPDATE == 0:
     #     target_net.load_state_dict(policy_net.state_dict())
+
+for hedge in env.hedges:
+    hedge.__repr__()
+print(env.money)
