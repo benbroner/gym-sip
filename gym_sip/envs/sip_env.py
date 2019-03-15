@@ -87,30 +87,28 @@ class SipEnv(gym.Env):
 
     def step(self, action):  # action given to us from test.py
         self.action = action   
-        # print(action) 
+        reward = 0 
         prev_state = self.cur_state
 
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
         # state = 
-        if done is True:
+        if done is True and self.last_bet is not None:
+            print('forgot to bet')
+            self.last_bet.__repr__()
+            print(self.money)
+            reward = -self.last_bet.amt
+            self.money -= reward
+            print(self.money)
+            return None, reward, True, self.odds
+        elif done is True:
             return None, 0, True, self.odds
 
         self._odds()
-        # print(self.game_hedges) 
 
         if self.is_valid(done):
-            reward = self.act()            
-            return self.cur_state, reward, done, None  
-        else:
-            if self.last_bet is not None and done is True:  # unhedged bet, lose bet1 amt
-                reward = -self.last_bet.amt
-                self.money -= reward
-                print("lost")
-                self.last_bet.__repr__()
-            else:
-                return 0
+            reward = self.act()
 
-        return self.cur_state, reward, done, self._odds()
+        return self.cur_state, reward, done, self.odds
 
     def next(self):
         self.new_game()
@@ -153,9 +151,7 @@ class SipEnv(gym.Env):
     def is_valid(self, done):
         # is_valid does NOT check for strict profit on hedge
         # it only checks for zero odds and if game is over
-        if self.odds == (0, 0) or self.odds == None:
-            return False
-        elif done:
+        if self.odds == (0, 0) or self.odds == None or done:
             return False
         else:
             return True
@@ -164,14 +160,14 @@ class SipEnv(gym.Env):
         hedge_amt = h.hedge_amt(self.last_bet, self.odds)
         hedged_bet = Bet(hedge_amt, self.action, self.odds)
         net = h.net(self.last_bet, hedged_bet)
-        # if net > 0:
-        hedge = Hedge(self.last_bet, hedged_bet)
-        self.hedges.append(hedge)
-        self.last_bet = None
-        self.game_hedges += 1
-        return hedge.net
-        # else:
-        #     return 0
+        if net > 0:
+            hedge = Hedge(self.last_bet, hedged_bet)
+            self.hedges.append(hedge)
+            self.last_bet = None
+            self.game_hedges += 1
+            return hedge.net
+        else:
+            return 0
 
     def _odds(self):
         self.odds = (self.cur_state[10], self.cur_state[11])
@@ -225,4 +221,3 @@ class Hedge:
 
     # TODO 
     # add function that writes bets to CSV for later analysis
-

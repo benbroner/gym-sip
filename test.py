@@ -46,7 +46,7 @@ class DQN(object):
 
         self.learn_step_counter = 0                                     # for target updating
         self.memory_counter = 0                                         # for storing memory
-        self.memory = np.zeros((MEMORY_CAPACITY, N_STATES + 3))     # initialize memory
+        self.memory = np.zeros((MEMORY_CAPACITY, N_STATES + 4))     # initialize memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
         self.loss_func = nn.MSELoss()
 
@@ -103,7 +103,7 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 60
+num_games = 50
 for ep in range(num_games):
     s, d = env.next()
     for i in range(EPOCHS):
@@ -136,4 +136,3 @@ for ep in range(num_games):
 for hedge in env.hedges:
     hedge.__repr__()
 print(env.money)
-

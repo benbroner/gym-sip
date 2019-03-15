@@ -147,7 +147,8 @@ def net(bet, bet2):
 
 
 def bet_amt(money):
-    return 0.05 * money + 100  # 100 is arbitrary
+    return 100
+    # return 0.05 * money + 100  # 100 is arbitrary
 
 
 def hedge_amt(bet, cur_odds):
