@@ -118,6 +118,7 @@ def _eq(odd):
         return odd/100.
     elif odd < 100:
         return abs(100/odd)
+
 def eq_to_odd(equity):
     if equity > 1:
         odd = 100 * equity

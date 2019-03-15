@@ -92,14 +92,25 @@ class SipEnv(gym.Env):
         prev_state = self.cur_state
 
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
-        # state = 
+        # if self.cur_state is None:
+        #     return None, 0, True, self.odds
+
         if done is True and self.last_bet is not None:
+
             print('forgot to bet')
             self.last_bet.__repr__()
             print(self.money)
-            reward = -self.last_bet.amt
-            self.money -= reward
+
+            if prev_state[6] == 1 and self.last_bet.team == 0:  # if away won and last bet team is away
+                reward = (h._eq(self.last_bet.a_odds) *  self.last_bet.amt) * 0.75
+
+            elif prev_state[7] == 1 and self.last_bet.team == 1:  # if home won and last bet team is home
+                reward = (h._eq(self.last_bet.h_odds) *  self.last_bet.amt) * 0.75
+            else:
+                reward = -self.last_bet.amt
+            self.money += reward
             print(self.money)
+            self.last_bet.__repr__()
             return None, reward, True, self.odds
         elif done is True:
             return None, 0, True, self.odds
@@ -140,23 +151,25 @@ class SipEnv(gym.Env):
             return 0
         #elif self.action != self.last_bet.team:
         elif self.last_bet.team == self.action:
+            if self.follow_bets < 4:
+                self.last_bet
+                new_amt = self.last_bet.amt + 100   # 100 is arbitrary
+                self.last_bet.__repr__()
+                if self.action == 0:
+                    x = (h._eq(self.last_bet.a_odds) + h._eq(self.odds[0]))/2
+                    new_odd = h.eq_to_odd(x)
+                    self.last_bet.amt = new_amt
+                    self.last_bet.odd = new_odd
 
-            new_amt = self.last_bet.amt + 100   # 100 is arbitrary
-
-            if self.action == 0:
-                x = (h._eq(self.last_bet.a_odds) + h._eq(self.odds[0]))/2
-                new_odd = h.eq_to_odd(x)
-                self.last_bet.amt = new_amt
-                self.last_bet.odd = new_odd
-
-            else:
-                x = (h._eq(self.last_bet.h_odds) + h._eq(self.odds[1]))/2
-                new_odd = h.eq_to_odd(x)
-                self.last_bet.amt = new_amt
-                self.last_bet.odd = new_odd
-            self.follow_bets += 1
-            print("lets fucking hammer this shit boi  anand you a dawg e sucks at math low key")
-            print(self.follow_bets)
+                else:
+                    x = (h._eq(self.last_bet.h_odds) + h._eq(self.odds[1]))/2
+                    new_odd = h.eq_to_odd(x)
+                    self.last_bet.amt = new_amt
+                    self.last_bet.odd = new_odd
+                self.follow_bets += 1
+                print("lets fucking hammer this shit boi  anand you a dawg e sucks at math low key") 
+                print(self.follow_bets)
+                self.last_bet.__repr__()
 
         else:
             net = self._hedge()
