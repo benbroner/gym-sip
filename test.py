@@ -115,7 +115,6 @@ for game_num in range(num_games):  # run on set number of games
     except IndexError:
         break
     for i in range(EPOCHS):
-
         a = dqn.choose_action(s)  # give deep q network state and return action
         ns, r, d, odds = env.step(a)  # next state, reward, done, 
 

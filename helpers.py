@@ -55,9 +55,9 @@ def get_df(fn='/data/nba2.csv'):
 
 
 def df_info(df):
+    # TODO
     # given pd df, return the general important info in console
     # num games, teams, etc 
-    # TODO
     pass
 
 
@@ -102,11 +102,9 @@ def chunk(df, col):
     # returns a python dict of pandas dfs, splitting the df arg by unique col value
     # df type pd df, col type string
     games = {key: val for key, val in df.groupby(col)}
-
     print(len(games))
     games = remove_missed_wins(games)
     print(len(games))
-
     return games
 
 
@@ -120,15 +118,14 @@ def _eq(odd):
     elif odd < 100:
         return abs(100/odd)
 
+
 def eq_to_odd(equity):
     if equity > 1:
         odd = 100 * equity
         return odd
-
     elif equity <= 1:
         odd = -100/equity
         return odd
-
     elif equity == 0:
         return 0
 
@@ -160,8 +157,8 @@ def net(bet, bet2):
 
 
 def bet_amt(money):
-    return 100
     # return 0.05 * money + 100  # 100 is arbitrary
+    return 100
 
 
 def hedge_amt(bet, cur_odds):
@@ -171,24 +168,27 @@ def hedge_amt(bet, cur_odds):
     else:
         return (bet.amt * (_eq(bet.h_odds) + 1)) / (_eq(cur_odds[0]) + 1)
 
+
 def awaysale_price(bet, cur_odds):
     # takes in Bet 1 and calculates the 
         return  awaygraph_hedge_amt(cur_odds) * _eq(cur_odds[0]) - 100
 
+
 def homesale_price(bet, cur_odds):
     if cur_odds[0] != None and cur_odds[1] != None:
-
         return homegraph_hedge_amt(cur_odds) * _eq(cur_odds[1]) - 100      
     else:
         return 0
 
+
 def awaygraph_hedge_amt(cur_odds):
     return (100 * (abs(_eq(cur_odds[0])) + 1)) / (abs(_eq(cur_odds[1])) + 1)
-    
+
+
 def homegraph_hedge_amt(cur_odds): 
     return (100 * (abs(_eq(cur_odds[1])) + 1)) / (abs(_eq(cur_odds[0])) + 1)
 
 
 def points_sum(a_points, h_points):
-#We are adding two integers, at index 0
+    # Simple sum at indices 0
     return int(a_points[0]) + int(h_points[0])
