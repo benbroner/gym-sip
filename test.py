@@ -108,7 +108,7 @@ s = (cur_state - prev_state)
 dqn = DQN()
 num_games = 1
 game_num = 0
-
+cols = np.array(num_games)
 reward_list = []
 time_list = []
 i = 0
@@ -118,26 +118,31 @@ y_axis = []
 for ep in range(num_games):
 # while len(list(env.games.keys())) > 0:
     try:
-        s, d = env.next()
+        cur_state, d = env.next()
     except IndexError:
-        break;
+        break
     game_num += 1
     for i in range(EPOCHS):
         a = dqn.choose_action(s)
-        s, r, d, odds = env.step(a)
-        if s is not None:
-
+        ns, r, d, odds = env.step(a) 
+        if ns is not None:
+            # s = cur_state - prev_state
             if env.init_a_bet.a_odds != 0 and env.init_h_bet.h_odds != 0:
-                
-
                 awaysale_price = h.awaysale_price(env.init_a_bet, odds)
                 homesale_price = h.homesale_price(env.init_h_bet, odds)
                 points_sum = env.cur_state[3] + env.cur_state[4]
+
+                if homesale_price > 1000: 
+                    print("This is dogshit")
+                    print(homesale_price)
+                    print(awaysale_price)
+                    print(odds)
+                    env.init_h_bet.__repr__()
+                    homesale_price = -99
+
+                print(str(homesale_price) + " What the fuck is good")
                 x_axis.append(points_sum)
-                y_axis.append(awaysale_price)
-          
-                
-                      
+                y_axis.append(homesale_price)
             cols.append(i)
             i += 1
             reward_list.append(r)
@@ -147,62 +152,64 @@ for ep in range(num_games):
             if dqn.memory_counter > MEMORY_CAPACITY:
                 dqn.learn()
             if not d:
-                prev_data = cur_state
-                cur_state = s
-                next_state = cur_state - prev_state
+                prev_state = cur_state
+                cur_state = ns
+                s = cur_state - prev_state
                 # next_state = cur_state
             else:
                 break
 
-            s = next_state
+            # s = next_state
         else:
             break
-
+print(len(x_axis))
+print(len(y_axis))
 np_x_axis = np.array(x_axis)
 np_y_axis = np.array(y_axis)
-
+#arr = np.concatenate((np_x_axis, np_y_axis.T), axis=1)
 # np_rl = np.array(reward_list)
 # np_rl = np_rl.astype(float)
-avg_ax = plt.scatter(np_x_axis, np_y_axis, alpha=.5)
+# torch.save(dqn.state_dict(), 'gym_model.ckpt')
+
+plt.scatter(np_x_axis, np_y_axis, s=0.1) # , alpha=.5)
 plt.show()
 
+# xs = []
+# xas = []
+# nets = []
+# to_starts = []
+# ax = plt.subplot()
+# avg_ax = plt.subplot()
 
-xs = []
-xas = []
-nets = []
-to_starts = []
-ax = plt.subplot()
-avg_ax = plt.subplot()
+# # ax = plt.subplot(xlabel="score sum", ylabel="hedge net profit / bet sum")
+# avg_ax = plt.subplot(xlabel="avg of bet scores sum", ylabel="last mod to start bet avgs")
 
-# ax = plt.subplot(xlabel="score sum", ylabel="hedge net profit / bet sum")
-avg_ax = plt.subplot(xlabel="avg of bet scores sum", ylabel="last mod to start bet avgs")
+# i = 0
+# cols = [] 
 
-i = 0
-cols = [] 
+# np.random.rand(len(env.hedges))
+# for hedge in env.hedges:
+#     cols.append(i)
+#     i += 1
+#     # fig = plt.figure(1)
+#     # bet_sum = hedge.bet.amt + hedge.bet2.amt
+#     score = hedge.bet.cur_state[3]  # a_pts
+#     score2 = hedge.bet.cur_state[4] # h_pts
 
-np.random.rand(len(env.hedges))
-for hedge in env.hedges:
-    cols.append(i)
-    i += 1
-    # fig = plt.figure(1)
-    # bet_sum = hedge.bet.amt + hedge.bet2.amt
-    score = hedge.bet.cur_state[3]  # a_pts
-    score2 = hedge.bet.cur_state[4] # h_pts
-
-    scorea = hedge.bet2.cur_state[3]  # a_pts
-    scorea2 = hedge.bet2.cur_state[4] # h_pts
+#     scorea = hedge.bet2.cur_state[3]  # a_pts
+#     scorea2 = hedge.bet2.cur_state[4] # h_pts
     
-    bet_score_avg = (score + score2) / 2 
-    bet2_score_avg = (scorea + scorea2) / 2 
+#     bet_score_avg = (score + score2) / 2 
+#     bet2_score_avg = (scorea + scorea2) / 2 
 
-    xas_avg = (bet_score_avg + bet2_score_avg) / 2
+#     xas_avg = (bet_score_avg + bet2_score_avg) / 2
 
-    xs.append(score + score2)
-    xas.append(xas_avg)
-    to_starts.append((hedge.bet.cur_state[9] + hedge.bet2.cur_state[9]) / 2)
-    nets.append(hedge.net/hedge.bet.amt)
-    hedge.__repr__()
-# env.hedges[]
-print(env.money)
-ax = plt.scatter(xs, nets, c=cols, alpha=0.5)
-avg_ax = plt.scatter(xas, to_starts, c=cols, alpha=0.5)
+#     xs.append(score + score2)
+#     xas.append(xas_avg)
+#     to_starts.append((hedge.bet.cur_state[9] + hedge.bet2.cur_state[9]) / 2)
+#     nets.append(hedge.net/hedge.bet.amt)
+#     hedge.__repr__()
+# # env.hedges[]
+# print(env.money)
+# ax = plt.scatter(xs, nets, c=cols, alpha=0.5)
+# avg_ax = plt.scatter(xas, to_starts, c=cols, alpha=0.5)

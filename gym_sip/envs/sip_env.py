@@ -74,14 +74,15 @@ class SipEnv(gym.Env):
         self.games = h.get_games(fn)
         self.game = None
         self.game_id = 0
+        self.init_a_bet = Bet(100, 0, (0, 0), None)
+        self.init_h_bet = Bet(100, 1, (0, 0), None)
         self.new_game()
         self.money = AUM
         self.last_bet = None  # 
         self.cur_state = self.game.cur_state  # need to store
         self.action = None
         self.hedges = []
-        self.init_a_bet = Bet(100, 0, (0, 0), self.cur_state)
-        self.init_h_bet = Bet(100, 1, (0, 0), self.cur_state)
+
         self.game_hedges = 0
         self.follow_bets = 0
         self.odds = ()  # storing current odds as 2-tuple
@@ -108,10 +109,15 @@ class SipEnv(gym.Env):
 
         if self.init_a_bet.a_odds == 0 and self.init_a_bet.h_odds == 0:  # check if the init odds have been set yet
             if prev_state[12] != 0 and prev_state[13] != 0:
-                self.init_a_bet.a_odds = prev_state[12]
-                self.init_h_bet.h_odds = prev_state[13]
-                self.init_a_bet.h_odds = prev_state[12]
-                self.init_h_bet.a_odds = prev_state[13]    
+
+                print(prev_state)
+                print('updated init odds')
+                self.init_a_bet.a_odds = prev_state[10]
+                self.init_h_bet.a_odds = prev_state[10]
+                self.init_h_bet.h_odds = prev_state[11]
+                self.init_a_bet.h_odds = prev_state[11]
+                self.init_h_bet.__repr__()
+                self.init_a_bet.__repr__()
 
 
         if done is True and self.last_bet is not None:
@@ -153,8 +159,10 @@ class SipEnv(gym.Env):
     def new_game(self):
         self.game_hedges = 0
         self.follow_bets = 0
-        self.init_a_odds = 0
-        self.init_h_odds = 0
+        self.init_h_bet.a_odds = 0
+        self.init_h_bet.h_odds = 0
+        self.init_a_bet.a_odds = 0
+        self.init_a_bet.h_odds = 0
         self.last_bet = None  # once a game has ended, bets are cleared
         self.game_id = random.choice(list(self.games.keys()))
         self.game = SippyState(self.games[self.game_id])
