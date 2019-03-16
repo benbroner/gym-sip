@@ -21,13 +21,14 @@ class Df(Dataset):
     def __len__(self):
         return self.data_len
 
+
 headers = [# 'a_team', 'h_team', 'sport', 'league', 
                 'game_id', 'cur_time',
                 'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
                 'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
 
 
-def get_games(fn='/data/nba2.csv'):
+def get_games(fn='data/nba2.csv'):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
     print(raw)
@@ -132,7 +133,6 @@ def eq_to_odd(equity):
         return 0
 
 
-
 def act(a):
     # simple function to easily change the action number into a string
     # returns string
@@ -170,3 +170,22 @@ def hedge_amt(bet, cur_odds):
         return (bet.amt * (_eq(bet.a_odds) + 1)) / (_eq(cur_odds[1]) + 1)
     else:
         return (bet.amt * (_eq(bet.h_odds) + 1)) / (_eq(cur_odds[0]) + 1)
+
+def awaysale_price(bet, cur_odds):
+    # takes in Bet 1 and calculates the 
+        return  awaygraph_hedge_amt(cur_odds) * _eq(cur_odds[0]) - 100
+
+def homesale_price(bet, cur_odds):
+    return homegraph_hedge_amt(cur_odds) * _eq(cur_odds[1]) - 100      
+
+
+def awaygraph_hedge_amt(cur_odds):
+    return (100 * (_eq(cur_odds[0]) + 1)) / (_eq(cur_odds[1]) + 1)
+    
+def homegraph_hedge_amt(cur_odds): 
+    return (100 * (_eq(cur_odds[1]) + 1)) / (_eq(cur_odds[0]) + 1)
+
+
+def points_sum(a_points, h_points):
+#We are adding two integers, at index 0
+    return int(a_points[0]) + int(h_points[0])

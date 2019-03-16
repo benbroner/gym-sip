@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt 
+import helpers as h
 
 # import deepq as dqn
 import random
@@ -105,13 +106,15 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 80
+num_games = 1
 game_num = 0
 
 reward_list = []
 time_list = []
 i = 0
-cols = [] 
+cols = []
+x_axis = []
+y_axis = [] 
 for ep in range(num_games):
 # while len(list(env.games.keys())) > 0:
     try:
@@ -123,6 +126,18 @@ for ep in range(num_games):
         a = dqn.choose_action(s)
         s, r, d, odds = env.step(a)
         if s is not None:
+
+            if env.init_a_bet.a_odds != 0 and env.init_h_bet.h_odds != 0:
+                
+
+                awaysale_price = h.awaysale_price(env.init_a_bet, odds)
+                homesale_price = h.homesale_price(env.init_h_bet, odds)
+                points_sum = env.cur_state[3] + env.cur_state[4]
+                x_axis.append(points_sum)
+                y_axis.append(awaysale_price)
+          
+                
+                      
             cols.append(i)
             i += 1
             reward_list.append(r)
@@ -142,11 +157,14 @@ for ep in range(num_games):
             s = next_state
         else:
             break
-np_rl = np.array(reward_list)
-np_rl = np_rl.astype(float)
-avg_ax = plt.scatter(time_list, np_rl, c=cols, alpha=0.5)
-plt.show()
 
+np_x_axis = np.array(x_axis)
+np_y_axis = np.array(y_axis)
+
+# np_rl = np.array(reward_list)
+# np_rl = np_rl.astype(float)
+avg_ax = plt.scatter(np_x_axis, np_y_axis, alpha=.5)
+plt.show()
 
 
 xs = []

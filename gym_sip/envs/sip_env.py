@@ -80,6 +80,8 @@ class SipEnv(gym.Env):
         self.cur_state = self.game.cur_state  # need to store
         self.action = None
         self.hedges = []
+        self.init_a_bet = Bet(100, 0, (0, 0), self.cur_state)
+        self.init_h_bet = Bet(100, 1, (0, 0), self.cur_state)
         self.game_hedges = 0
         self.follow_bets = 0
         self.odds = ()  # storing current odds as 2-tuple
@@ -91,12 +93,26 @@ class SipEnv(gym.Env):
         self.action = action   
         reward = 0 
         prev_state = self.cur_state
-
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
         # if self.cur_state is None:
         #     return None, 0, True, self.odds
+
+
+        #if done is not True:
+            #this is where we are making the graph
+
+
         if done is True:
             del self.games[self.game_id]
+            #this is where we are going to print the graph
+
+        if self.init_a_bet.a_odds == 0 and self.init_a_bet.h_odds == 0:  # check if the init odds have been set yet
+            if prev_state[12] != 0 and prev_state[13] != 0:
+                self.init_a_bet.a_odds = prev_state[12]
+                self.init_h_bet.h_odds = prev_state[13]
+                self.init_a_bet.h_odds = prev_state[12]
+                self.init_h_bet.a_odds = prev_state[13]    
+
 
         if done is True and self.last_bet is not None:
             print('forgot to bet')
@@ -137,6 +153,8 @@ class SipEnv(gym.Env):
     def new_game(self):
         self.game_hedges = 0
         self.follow_bets = 0
+        self.init_a_odds = 0
+        self.init_h_odds = 0
         self.last_bet = None  # once a game has ended, bets are cleared
         self.game_id = random.choice(list(self.games.keys()))
         self.game = SippyState(self.games[self.game_id])
@@ -234,6 +252,7 @@ class Bet:
         self.team = action  # 0 for away, 1 for home
         self.a_odds = odds[0]
         self.h_odds = odds[1]
+        self.odds = (odds[0], odds[1])
         self.cur_state = cur_state
         # self.__repr__()
 
