@@ -155,7 +155,7 @@ class SipEnv(gym.Env):
             return 0  # if skip, reward = 0
 
         elif self.action == ACTION_SKIP and self.game_hedges > 0:
-            return -1000000
+            return -1000
 
         elif self.last_bet is None:  # if last bet != None, then this bet is a hedge
             self._bet()  
@@ -199,6 +199,7 @@ class SipEnv(gym.Env):
             print(self.money)
             return net
         else:
+            print("shouldn't be here")
             return 1
 
     def _bet(self):
@@ -285,7 +286,7 @@ class Hedge:
         self.bet.__repr__()
         print("BET 2 of 2")
         self.bet2.__repr__()
-        print('*******************hedged profit: ' + str(self.net))
+        print('*****************************************hedged profit: ' + str(self.net))
         print('\n')
 
     # TODO 

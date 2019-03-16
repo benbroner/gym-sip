@@ -104,7 +104,7 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 100
+num_games = 500
 
 x_axis = []
 y_axis = [] 
