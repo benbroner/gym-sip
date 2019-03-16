@@ -31,13 +31,15 @@ headers = [# 'a_team', 'h_team', 'sport', 'league',
 def get_games(fn='data/nba2.csv'):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
+    # raw = get_df(fn)
     print(raw)
-    # df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
+   #  df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
     # df = dates(raw)
     # df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
     # df = df.astype(np.float32)
     games = chunk(raw, 'game_id')
     return games
+
 
 def remove_missed_wins(games):
     # takes in a dictionary of games 
@@ -45,6 +47,7 @@ def remove_missed_wins(games):
         if len(games[g_id]['a_win'].unique()) + len(games[g_id]['h_win'].unique()) != 3:
             del games[g_id]
     return games
+
 
 def get_df(fn='/data/nba2.csv'):
     raw = csv(fn)
@@ -72,6 +75,7 @@ def label_split(df, col):
 def train_test(df, train_frac=0.6):
     # TODO
     pass
+
 
 def csv(fn):
     # takes in file name, returns pandas dataframe
@@ -136,7 +140,7 @@ def act(a):
     if a == 0:
         return 'BOUGHT AWAY'
     elif a == 1:
-        return 'HEDGED HOME'
+        return 'BOUGHT HOME'
     elif a == 2:
         return 'SKIP'
     else: 
@@ -175,18 +179,18 @@ def awaysale_price(bet, cur_odds):
 
 
 def homesale_price(bet, cur_odds):
-    if cur_odds[0] != None and cur_odds[1] != None:
+    if cur_odds[0] != 0 and cur_odds[1] != 0:
         return homegraph_hedge_amt(cur_odds) * _eq(cur_odds[1]) - 100      
     else:
         return 0
 
 
 def awaygraph_hedge_amt(cur_odds):
-    return (100 * (abs(_eq(cur_odds[0])) + 1)) / (abs(_eq(cur_odds[1])) + 1)
+    return (100 * (_eq(cur_odds[0]) + 1)) / (_eq(cur_odds[1]) + 1)
 
 
 def homegraph_hedge_amt(cur_odds): 
-    return (100 * (abs(_eq(cur_odds[1])) + 1)) / (abs(_eq(cur_odds[0])) + 1)
+    return (100 * (_eq(cur_odds[1]) + 1)) / (_eq(cur_odds[0]) + 1)
 
 
 def points_sum(a_points, h_points):

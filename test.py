@@ -51,7 +51,7 @@ class DQN(object):
         self.loss_func = nn.MSELoss()
 
     def choose_action(self, x):
-        print(x)
+        # print(x)
         x = torch.unsqueeze(torch.FloatTensor(x), 0)
         # input only one sample
         if np.random.uniform() < EPSILON:   # greedy
@@ -103,13 +103,16 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 1
+num_games = 100
 
 x_axis = []
 y_axis = [] 
 
 for game_num in range(num_games):  # run on set number of games
-# while len(list(env.games.keys())) > 0:  # run on all games
+    if game_num % 100 == 0:
+        print("GAME: ", end='')
+        print(game_num)
+        print('\n')
     try:
         cur_state, d = env.next()
     except IndexError:
@@ -117,9 +120,11 @@ for game_num in range(num_games):  # run on set number of games
     for i in range(EPOCHS):
         a = dqn.choose_action(s)  # give deep q network state and return action
         ns, r, d, odds = env.step(a)  # next state, reward, done, 
-
+        print('reward: ', end='')
+        print(r)
+        print('\n')
         if ns is not None:
-            if env.init_a_bet.a_odds != 0 and env.init_h_bet.h_odds != 0:
+            if env.init_a_bet.a_odds != 0 and env.init_a_bet.h_odds != 0:
                 awaysale_price = h.awaysale_price(env.init_a_bet, odds)
                 homesale_price = h.homesale_price(env.init_h_bet, odds)
 
@@ -129,11 +134,11 @@ for game_num in range(num_games):  # run on set number of games
                     print("homesale_price high")
                     print(homesale_price)
                     print(awaysale_price)
-                    print(odds)
                     env.init_h_bet.__repr__()
-                    homesale_price = -99
+                    print(odds)
+                    # homesale_price = -99
 
-                print(str(homesale_price) + " hs_price")
+                # print(str(homesale_price) + " hs_price")
 
                 x_axis.append(points_sum)
                 y_axis.append(homesale_price)
@@ -150,12 +155,13 @@ for game_num in range(num_games):  # run on set number of games
         else:
             break
 
-
+print(env.money)
+print(len(x_axis))
 np_x_axis = np.array(x_axis)
 np_y_axis = np.array(y_axis)
 
 # np_rl = np.array(reward_list)
 # np_rl = np_rl.astype(float)
 
-plt.scatter(np_x_axis, np_y_axis, s=1, alpha=.5)
+plt.scatter(np_x_axis, np_y_axis, s=2.5, alpha=.5)
 plt.show()
