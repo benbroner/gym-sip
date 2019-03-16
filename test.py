@@ -112,8 +112,8 @@ reward_list = []
 time_list = []
 i = 0
 cols = [] 
-# for ep in range(num_games):
-while len(list(env.games.keys())) > 0:
+for ep in range(num_games):
+# while len(list(env.games.keys())) > 0:
     try:
         s, d = env.next()
     except IndexError:
@@ -144,7 +144,7 @@ while len(list(env.games.keys())) > 0:
             break
 np_rl = np.array(reward_list)
 np_rl = np_rl.astype(float)
-avg_ax = plt.scatter(time_list, cols, s=np_rl, c=cols, alpha=0.5)
+avg_ax = plt.scatter(time_list, np_rl, c=cols, alpha=0.5)
 plt.show()
 
 
