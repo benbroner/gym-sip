@@ -96,6 +96,7 @@ class DQN(object):
 
 steps_done = 0
 reward_sum = 0
+reward_list = []
 
 # init
 prev_state = env.game.cur_state
@@ -140,8 +141,9 @@ for game_num in range(num_games):  # run on set number of games
 
                 # print(str(homesale_price) + " hs_price")
 
-                x_axis.append(points_sum)
-                y_axis.append(homesale_price)
+                x_axis.append(i)
+                # y_axis.append(homesale_price)
+                y_axis.append(r)
 
             dqn.store_transition(s, a, r, odds)
             if dqn.memory_counter > MEMORY_CAPACITY:

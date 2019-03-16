@@ -90,7 +90,6 @@ class SipEnv(gym.Env):
         print(np.around(self.cur_state))
         self.action = action   
         reward = 0 
-        prev_state = self.cur_state
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
 
         if self.cur_state is None:
@@ -121,6 +120,8 @@ class SipEnv(gym.Env):
 
         if self.is_valid():
             reward = self.act()  # MAIN ACTION CALL
+            
+
         else:
             return None, 0, True, self.odds
         return self.cur_state, reward, done, self.odds
@@ -150,43 +151,55 @@ class SipEnv(gym.Env):
             self.new_game()
 
     def act(self):
-        if self.action == ACTION_SKIP:
+        if self.action == ACTION_SKIP and self.game_hedges == 0:
             return 0  # if skip, reward = 0
+
+        elif self.action == ACTION_SKIP and self.game_hedges > 0:
+            return -1000000
+
         elif self.last_bet is None:  # if last bet != None, then this bet is a hedge
             self._bet()  
             return 0  # reward for getting equity
         elif self.last_bet.team == self.action:  # betting on same team twice
-            if self.follow_bets < 4:  # cap on repeated team bets
+            #if self.follow_bets < 4:  # cap on repeated team bets
                 
-                new_amt = self.last_bet.amt + 100   # 100 is arbitrary
-                self.last_bet.__repr__()
+            new_amt = self.last_bet.amt + 100   # 100 is arbitrary
+            self.last_bet.__repr__()
+            
+            if self.action == ACTION_BUY_A:
                 
-                if self.action == ACTION_BUY_A:
-                    
-                    x = (h._eq(self.last_bet.a_odds) + h._eq(self.odds[0]))/2
-                    new_odd = h.eq_to_odd(x)
-                    
-                    self.last_bet.amt = new_amt
-                    self.last_bet.a_odds = new_odd
+                x = (h._eq(self.last_bet.a_odds) + h._eq(self.odds[0]))/2
+                new_odd = h.eq_to_odd(x)
+                
+                self.last_bet.amt = new_amt
+                self.last_bet.a_odds = new_odd
 
-                else:  # only other option here is buying home team
-                    
-                    x = (h._eq(self.last_bet.h_odds) + h._eq(self.odds[1]))/2
-                    new_odd = h.eq_to_odd(x)
-                    
-                    self.last_bet.amt = new_amt
-                    self.last_bet.h_odds = new_odd
+            else:  # only other option here is buying home team
                 
-                self.follow_bets += 1
+                x = (h._eq(self.last_bet.h_odds) + h._eq(self.odds[1]))/2
+                new_odd = h.eq_to_odd(x)
+                
+                self.last_bet.amt = new_amt
+                self.last_bet.h_odds = new_odd
+            
+            self.follow_bets += 1
 
-                print("followed")                 
-                self.last_bet.__repr__()
+            print("followed")                 
+            self.last_bet.__repr__()
             return 0
-        else:
+
+        elif self.last_bet.team != self.action and self.game_hedges >=1:
+            return self._hedge()
+        
+
+        elif self.last_bet.team != self.action and self.game_hedges == 0:
+
             net = self._hedge()
             self.money += net
             print(self.money)
             return net
+        else:
+            return 1
 
     def _bet(self):
         # we don't update self.money because we don't want it to get a negative reward on _bet()
