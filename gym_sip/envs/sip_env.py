@@ -21,9 +21,6 @@ class SippyState:
         self.game_len = len(game)  # used often
         self.id = self.ids()[0]
         self.index = 0
-        # self.game_a_odds = self.game['a_odds']
-        # self.game_h_odds = self.game['h_odds']
-        # since the file was written append, we are decrementing from end
         self.cur_state = self.game.iloc[self.index]
 
         print("imported {}".format(self.id))
@@ -43,7 +40,6 @@ class SippyState:
 
     def reset(self):
         self.index = 0
-        # self.index = len(self.game - 1)
 
     def shape(self):
         return self.game.shape
@@ -95,36 +91,17 @@ class SipEnv(gym.Env):
         reward = 0 
         prev_state = self.cur_state
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
-        # if self.cur_state is None:
-        #     return None, 0, True, self.odds
 
+        self.set_init_odds(prev_state)
+        
 
-        #if done is not True:
-            #this is where we are making the graph
-
-
-        if done is True:
+        if done is True and self.last_bet is None:
             del self.games[self.game_id]
-            #this is where we are going to print the graph
-
-        if self.init_a_bet.a_odds == 0 and self.init_a_bet.h_odds == 0:  # check if the init odds have been set yet
-            if prev_state[12] != 0 and prev_state[13] != 0:
-
-                print(prev_state)
-                print('updated init odds')
-                self.init_a_bet.a_odds = prev_state[10]
-                self.init_h_bet.a_odds = prev_state[10]
-                self.init_h_bet.h_odds = prev_state[11]
-                self.init_a_bet.h_odds = prev_state[11]
-                self.init_h_bet.__repr__()
-                self.init_a_bet.__repr__()
-
-
-        if done is True and self.last_bet is not None:
+            return None, 0, True, self.odds
+        elif done is True and self.last_bet is not None:
             print('forgot to bet')
             self.last_bet.__repr__()
             print(self.money)
-
             if prev_state[6] == 1 and self.last_bet.team == 0:  # if away won and last bet team is away
                 reward = (h._eq(self.last_bet.a_odds) *  self.last_bet.amt) * 0.75
 
@@ -132,19 +109,17 @@ class SipEnv(gym.Env):
                 reward = (h._eq(self.last_bet.h_odds) *  self.last_bet.amt) * 0.75
             else:
                 reward = -self.last_bet.amt
+            self.last_bet.__repr__()
             self.money += reward
             print(self.money)
-            self.last_bet.__repr__()
             return None, reward, True, self.odds
-        elif done is True:
-            return None, 0, True, self.odds
-
+        
         self._odds()
 
         if self.is_valid():
-            reward = self.act()
-
-        print(self.money)
+            reward = self.act()  # MAIN ACTION CALL
+        else:
+            return None, 0, True, self.odds
         return self.cur_state, reward, done, self.odds
 
     def next(self):
@@ -173,12 +148,10 @@ class SipEnv(gym.Env):
 
     def act(self):
         if self.action == ACTION_SKIP:
-            # print('skipped')
             return 0  # if skip, reward = 0
         elif self.last_bet is None:  # if last bet != None, then this bet is a hedge
             self._bet()
             return 0
-        #elif self.action != self.last_bet.team:
         elif self.last_bet.team == self.action:
             if self.follow_bets < 4:
                 self.last_bet
@@ -196,21 +169,20 @@ class SipEnv(gym.Env):
                     self.last_bet.amt = new_amt
                     self.last_bet.odd = new_odd
                 self.follow_bets += 1
-                print("lets fucking hammer this shit boi  anand you a dawg e sucks at math low key") 
+                print("follow") 
                 print(self.follow_bets)
                 self.last_bet.__repr__()
-
         else:
             net = self._hedge()
             self.money += net
-            
+            print(self.money)
             return net
 
     def _bet(self):
         # we don't update self.money because we don't want it to get a negative reward on _bet()
         amt = h.bet_amt(self.money)
         self.last_bet = Bet(amt, self.action, self.odds, self.cur_state)
-        self.last_bet.__repr__()
+        # self.last_bet.__repr__()
 
     def is_valid(self):
         # is_valid does NOT check for strict profit on hedge
@@ -224,14 +196,24 @@ class SipEnv(gym.Env):
         hedge_amt = h.hedge_amt(self.last_bet, self.odds)
         hedged_bet = Bet(hedge_amt, self.action, self.odds, self.cur_state)
         net = h.net(self.last_bet, hedged_bet)
-        # if net > 0:
         hedge = Hedge(self.last_bet, hedged_bet)
+        hedge.__repr__()
         self.hedges.append(hedge)
         self.last_bet = None
         self.game_hedges += 1
         return hedge.net
-        # else:
-        #     return 0
+
+    def set_init_odds(self, prev_state):
+        if self.init_a_bet.a_odds == 0 and self.init_a_bet.h_odds == 0:  # check if the init odds have been set yet
+            if prev_state[12] != 0 and prev_state[13] != 0:
+                print(prev_state)
+                print('updated init odds')
+                self.init_a_bet.a_odds = prev_state[10]
+                self.init_h_bet.a_odds = prev_state[10]
+                self.init_h_bet.h_odds = prev_state[11]
+                self.init_a_bet.h_odds = prev_state[11]
+                self.init_h_bet.__repr__()
+                self.init_a_bet.__repr__()
 
     def _odds(self):
         self.odds = (self.cur_state[10], self.cur_state[11])
@@ -241,9 +223,6 @@ class SipEnv(gym.Env):
 
     def __repr__(self):
         print('index in game: ' + str(self.cur_state.index))
-        # TODO fix team name access and print hedge count
-        # print('a team: ' + str() +
-        #       ' | h_team ' + str())
 
     def _render(self, mode='human', close=False):
         pass
@@ -253,7 +232,6 @@ class Bet:
     # class storing bet info, will be stored in pair (hedged-bet)
     # might want to add time into game so we can easily aggregate when it is betting in the game
     # possibly using line numbers where they update -(1/(x-5)). x=5 is end of game
-
     # maybe bets should be stored as a step (csv line) and the bet amt and index into game.
     def __init__(self, amt, action, odds, cur_state):
         self.amt = amt
@@ -277,7 +255,6 @@ class Hedge:
         self.net = h.net(bet, bet2)
         self.bet = bet
         self.bet2 = bet2
-        self.__repr__()
 
     def __repr__(self):
         self.bet.__repr__()

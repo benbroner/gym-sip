@@ -1,14 +1,38 @@
 # gym-sip
-Adapted from https://github.com/bioothod/gym-stocks
-Huge thanks to bioothod.
+    Credits:
+        Gym environment adapted from https://github.com/bioothod/gym-stocks
+        Deep-Q network adapted from https://github.com/MorvanZhou/pytorch-A3C
+        Thank you to bioothod who enabled me to easily get started using gym.
+        Thank you to MorvanZhou for his incredible PyTorch examples.
 
-OpenAI gym to play with basketball odds.
 
-1. Download stock data in comma-separated CSV format, following fields are required `'last_mod_lines', 'a_odds_ml', 'h_odds_ml' into `data/` directory within this git sources, each separate datafile should have `.csv` extension
-
-2. Install gym-sip
-```
-pip install --user -e .
-```
-3. Run example test.py
-
+# Quick start:
+    
+    gym-sip is a custom gym environment that is configured to take in NBA money lines. 
+    Actions are decided based on learned previous examples, stored in memory of N states.
+    
+    Once you have git cloned the project, create a folder in gym-sip called 'data' and place
+    a csv in the folder. This folder must meet certain specifications or requires modification 
+    to the source code. Mainly the columns must be correct.
+    
+    Run test.py
+    
+    
+    
+    
+    
+# CSV column specifications
+    game_id               
+    cur_time             
+    secs                  
+    a_pts                 
+    h_pts
+    status
+    a_win
+    h_win
+    last_mod_to_start
+    num_markets
+    a_odds_ml
+    h_odds_ml
+    a_hcap_tot
+    h_hcap_tot
