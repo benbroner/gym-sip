@@ -174,9 +174,10 @@ def hedge_amt(bet, cur_odds):
 
 
 def awaysale_price(bet, cur_odds):
-    # takes in Bet 1 and calculates the 
+    if cur_odds[0] != 0 and cur_odds[1] != 0:
         return  awaygraph_hedge_amt(cur_odds) * _eq(cur_odds[0]) - 100
-
+    else:
+        return 0
 
 def homesale_price(bet, cur_odds):
     if cur_odds[0] != 0 and cur_odds[1] != 0:
