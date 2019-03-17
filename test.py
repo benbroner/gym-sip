@@ -104,12 +104,14 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 100
+num_games = 1000
 
 x_axis = []
 y_axis = [] 
 y2 = [] 
 y3 = [] 
+y4 = [] 
+
 
 for game_num in range(num_games):  # run on set number of games
     if game_num % 100 == 0:
@@ -119,12 +121,15 @@ for game_num in range(num_games):  # run on set number of games
     try:
         cur_state, d = env.next()
         if d:
+            del env.games[env.games.id]
             continue
     except IndexError:
         break
     for i in range(env.game.game_len):
         a = dqn.choose_action(s)  # give deep q network state and return action
-        ns, r, d, odds = env.step(a)  # next state, reward, done, 
+        ns, r, d, odds = env.step(a)  # next state, reward, done, odds
+
+        print(dqn.memory_counter)
         print(env.game.id)
         print('reward: ', end='')
         print(r)
@@ -139,12 +144,13 @@ for game_num in range(num_games):  # run on set number of games
             cur_state = ns
             s = cur_state - prev_state
             if env.init_a_bet.a_odds != 0 and env.init_a_bet.h_odds != 0:
-                awaysale_price = h.awaysale_price(env.init_a_bet, odds)
-                homesale_price = h.homesale_price(env.init_h_bet, odds)
+                awaysale_price = h.net_given_odds(env.init_a_bet, odds)
+                homesale_price = h.net_given_odds(env.init_h_bet, odds)
                 points_sum = env.cur_state[3] + env.cur_state[4]
 
                 y2.append(homesale_price)
                 y3.append(awaysale_price)
+                y4.append(env.money)
                 x_axis.append(game_num + i/env.game.game_len)
                 y_axis.append(r)
                 
@@ -164,11 +170,13 @@ np_y_axis = np.array(y_axis)
 
 np_y2 = np.array(y2)
 np_y3 = np.array(y3)
+np_y4 = np.array(y4)
 
 # np_rl = np.array(reward_list)
 # np_rl = np_rl.astype(float)
 
-plt.scatter(np_x_axis, np_y_axis, c='red', s=2.5)
-plt.scatter(np_x_axis, np_y2, c='blue', s=2.5)
-plt.scatter(np_x_axis, np_y3, c='green', s=2.5)
+plt.scatter(np_x_axis, np_y_axis, c='red', s=2.5, alpha=0.5)
+plt.scatter(np_x_axis, np_y2, c='blue', s=1, alpha=0.3)
+plt.scatter(np_x_axis, np_y3, c='green', s=1, alpha=0.3)
+plt.scatter(np_x_axis, np_y4, c='yellow', s=2.5, alpha=0.5)
 plt.show()

@@ -160,6 +160,8 @@ def net(bet, bet2):
         return bet.amt * _eq(bet.h_odds) - bet2.amt
 
 
+
+
 def bet_amt(money):
     # return 0.05 * money + 100  # 100 is arbitrary
     return 100
@@ -173,27 +175,11 @@ def hedge_amt(bet, cur_odds):
         return (bet.amt * (_eq(bet.h_odds) + 1)) / (_eq(cur_odds[0]) + 1)
 
 
-def awaysale_price(bet, cur_odds):
-    if cur_odds[0] != 0 and cur_odds[1] != 0:
-        return  awaygraph_hedge_amt(cur_odds) * _eq(cur_odds[0]) - 100
+def net_given_odds(bet, cur_odds):
+    bet2_amt = hedge_amt(bet, cur_odds)
+    bet_sum = bet.amt + bet2_amt
+    if bet.team == 0:
+        return bet.amt * _eq(bet.a_odds) - bet2_amt
     else:
-        return 0
+        return bet.amt * _eq(bet.h_odds) - bet2_amt
 
-def homesale_price(bet, cur_odds):
-    if cur_odds[0] != 0 and cur_odds[1] != 0:
-        return homegraph_hedge_amt(cur_odds) * _eq(cur_odds[1]) - 100      
-    else:
-        return 0
-
-
-def awaygraph_hedge_amt(cur_odds):
-    return (100 * (_eq(cur_odds[0]) + 1)) / (_eq(cur_odds[1]) + 1)
-
-
-def homegraph_hedge_amt(cur_odds): 
-    return (100 * (_eq(cur_odds[1]) + 1)) / (_eq(cur_odds[0]) + 1)
-
-
-def points_sum(a_points, h_points):
-    # Simple sum at indices 0
-    return int(a_points[0]) + int(h_points[0])
