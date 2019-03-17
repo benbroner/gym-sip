@@ -14,7 +14,7 @@ EPOCHS = 50000
 env = gym.make('Sip-v0').unwrapped
 # env.reset()
 
-BATCH_SIZE = 1
+BATCH_SIZE = 64
 LR = 0.01                   # learning rate
 EPSILON = 0.9               # greedy policy
 GAMMA = 0.9                 # reward discount
@@ -28,6 +28,8 @@ ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_sp
 class Net(nn.Module):
     def __init__(self, ):
         super(Net, self).__init__()
+        print('size')
+        print(N_STATES) 
         self.fc1 = nn.Linear(N_STATES, 50)
         self.fc1.weight.data.normal_(0, 0.1)   # initialization
         self.out = nn.Linear(50, N_ACTIONS)
@@ -48,7 +50,7 @@ class DQN(object):
         self.memory_counter = 0                                         # for storing memory
         self.memory = np.zeros((MEMORY_CAPACITY, N_STATES + 4))     # initialize memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
-        self.loss_func = nn.MSELoss()
+        self.loss_func = nn.CrossEntropyLoss()
 
     def choose_action(self, x):
         # print(x)
@@ -98,13 +100,15 @@ steps_done = 0
 reward_sum = 0
 reward_list = []
 
+
+
 # init
 prev_state = env.game.cur_state
 cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 1000
+num_games = 5
 
 x_axis = []
 y_axis = [] 
@@ -112,11 +116,15 @@ y2 = []
 y3 = [] 
 y4 = [] 
 
+num_profitable_steps = 0
+num_unprofitable_steps = 0
 
 for game_num in range(num_games):  # run on set number of games
     if game_num % 100 == 0:
         print("GAME: ", end='')
         print(game_num)
+        print('num profit steps: {}'.format(num_profitable_steps))
+        print('num unprofit steps: {}'.format(num_unprofitable_steps))
         print('\n')
     try:
         cur_state, d = env.next()
@@ -128,11 +136,15 @@ for game_num in range(num_games):  # run on set number of games
     for i in range(env.game.game_len):
         a = dqn.choose_action(s)  # give deep q network state and return action
         ns, r, d, odds = env.step(a)  # next state, reward, done, odds
-
-        print(dqn.memory_counter)
+        if r > 0:
+            num_profitable_steps += 1
+        elif r < 0:
+            num_unprofitable_steps += 1
+        print('step: {}'.format(dqn.memory_counter))
         print(env.game.id)
         print('reward: ', end='')
         print(r)
+        print(odds)
         print('\n')
 
         dqn.store_transition(s, a, r, odds)
@@ -147,13 +159,18 @@ for game_num in range(num_games):  # run on set number of games
                 awaysale_price = h.net_given_odds(env.init_a_bet, odds)
                 homesale_price = h.net_given_odds(env.init_h_bet, odds)
                 points_sum = env.cur_state[3] + env.cur_state[4]
-
+                x = game_num + i/env.game.game_len
                 y2.append(homesale_price)
                 y3.append(awaysale_price)
                 y4.append(env.money)
                 x_axis.append(game_num + i/env.game.game_len)
                 y_axis.append(r)
-                
+
+                plt.scatter(x, homesale_price, c='blue', s=1, alpha=0.3)
+                plt.scatter(x, env.money, c='green', s=1, alpha=0.3)
+                plt.scatter(x, r, c='yellow', s=2.5, alpha=0.5)
+                plt.scatter(x, awaysale_price, c='red', s=2.5, alpha=0.5)
+
                 if homesale_price > 1000: 
                     print("homesale_price high")
                     print(homesale_price)
@@ -175,8 +192,9 @@ np_y4 = np.array(y4)
 # np_rl = np.array(reward_list)
 # np_rl = np_rl.astype(float)
 
-plt.scatter(np_x_axis, np_y_axis, c='red', s=2.5, alpha=0.5)
 plt.scatter(np_x_axis, np_y2, c='blue', s=1, alpha=0.3)
 plt.scatter(np_x_axis, np_y3, c='green', s=1, alpha=0.3)
 plt.scatter(np_x_axis, np_y4, c='yellow', s=2.5, alpha=0.5)
+plt.scatter(np_x_axis, np_y_axis, c='red', s=2.5, alpha=0.5)
+plt.plot(np_x_axis, np_y_axis)
 plt.show()

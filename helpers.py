@@ -22,7 +22,7 @@ class Df(Dataset):
         return self.data_len
 
 
-headers = [# 'a_team', 'h_team', 'sport', 'league', 
+headers = ['a_team', 'h_team', 'sport', 'league', 
                 'game_id', 'cur_time',
                 'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
                 'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
@@ -33,11 +33,11 @@ def get_games(fn='data/nba2.csv'):
     raw = csv(fn)
     # raw = get_df(fn)
     print(raw)
-   #  df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
+    df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
     # df = dates(raw)
     # df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
     # df = df.astype(np.float32)
-    games = chunk(raw, 'game_id')
+    games = chunk(df, 'game_id')
     return games
 
 

@@ -85,8 +85,8 @@ class SipEnv(gym.Env):
         self.action = action   
         reward = 0 
         self.cur_state, done = self.game.next()  # goes to the next timestep in current game
-        self.set_init_odds()
         self._odds()
+        self.set_init_odds()
 
         if done is True: 
             if self.game.team_won is False or self.last_bet is None:
@@ -124,6 +124,7 @@ class SipEnv(gym.Env):
     def _bet(self):
         # we don't update self.money because we don't want it to get a negative reward on _bet()
         amt = h.bet_amt(self.money)
+        print("bet*")
         self.last_bet = Bet(amt, self.action, self.odds, self.cur_state)
 
     def _hedge(self):
@@ -148,45 +149,42 @@ class SipEnv(gym.Env):
         self.init_a_bet.reset_odds()
 
         self.last_bet = None  # once a game has ended, bets are cleared
+
         self.game_id = random.choice(list(self.games.keys()))
         self.game = SippyState(self.games[self.game_id])
+        
+        # self.get_teams_from_state()
+
         if self.game is None:
             del self.games[self.game_id]
             print('deleted a game')
             self.new_game()
 
+        print(self.game.cur_state)
+
     def set_init_odds(self):
         if self.init_a_bet.a_odds == 0:  # check if the init a odds have been set yet
-            if self.cur_state[10] != 0: 
-                print('updated init a odds')
-                self.init_a_bet.a_odds = self.cur_state[10]
-                self.init_h_bet.a_odds = self.cur_state[10]
+            if self.odds[0] != 0: 
+                print('updated init a odds: {}'.format(self.odds[0]))
+                self.init_a_bet.a_odds = self.odds[0]
+                self.init_h_bet.a_odds = self.odds[0]
         if self.init_a_bet.h_odds == 0:
-            if self.cur_state[11] != 0:
-                print('updated init h odds')
-                self.init_h_bet.h_odds = self.cur_state[11]
-                self.init_a_bet.h_odds = self.cur_state[11]
+            if self.odds[1] != 0:
+                print('updated init h odds: {}'.format(self.odds[1]))
+                self.init_h_bet.h_odds = self.odds[1]
+                self.init_a_bet.h_odds = self.odds[1]
+
+    # def get_teams_from_state(self):
+    #     print(self.cur_state[:16])
+    #     for val in self.cur_state[:16].values.ravel()
 
     def forgot_to_hedge(self):
         print('forgot to hedge')
-        print(self.money)
-
-        self.last_bet.__repr__()
-
-        if self.cur_state[6] == 1 and self.last_bet.team == 0:  # if away won and last bet team is away
-            reward = 0
-            # reward = (h._eq(self.last_bet.a_odds) *  self.last_bet.amt) * 0.75
-        elif self.cur_state[7] == 1 and self.last_bet.team == 1:  # if home won and last bet team is home
-            reward = 0
-            # reward = (h._eq(self.last_bet.h_odds) *  self.last_bet.amt) * 0.75
-        else:
-            reward = -self.last_bet.amt
-
+        reward = -self.last_bet.amt
         self.last_bet.__repr__()
         print(self.last_bet.wait_amt)
-        self.money += reward
-        print(self.money)
         return None, reward, True, self.odds
+
     def _odds(self):
         self.odds = (self.cur_state[10], self.cur_state[11])
 
@@ -243,14 +241,14 @@ class Hedge:
         self.bet2 = bet2
 
     def __repr__(self):
-        print("BET 1 of 2")
+        print("[BET 1 of 2")
         self.bet.__repr__()
         print("BET 2 of 2")
         self.bet2.__repr__()
         print('hedged profit: ' + str(self.net))
         print('steps waited: ' + str(self.bet.wait_amt))
         if self.made_profit:
-            print('made money')
+            print('made money]')
         print('\n')
 
     # TODO 
