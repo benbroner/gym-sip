@@ -101,6 +101,9 @@ class SipEnv(gym.Env):
         reward = self.act()  # MAIN ACTION CALL
         if reward == None:
             return None, 0, True, self.odds
+        place_in_game = self.game.index / self.game.game_len
+        if reward > 0:
+            reward = reward / place_in_game
 
         return self.cur_state, reward, done, self.odds
 

@@ -50,7 +50,7 @@ class DQN(object):
         self.memory_counter = 0                                         # for storing memory
         self.memory = np.zeros((MEMORY_CAPACITY, N_STATES + 4))     # initialize memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
-        self.loss_func = nn.CrossEntropyLoss()
+        self.loss_func = nn.MSELoss()
 
     def choose_action(self, x):
         # print(x)
@@ -108,7 +108,7 @@ cur_state = env.game.cur_state
 s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 5
+num_games = 20
 
 x_axis = []
 y_axis = [] 
@@ -134,8 +134,11 @@ for game_num in range(num_games):  # run on set number of games
     except IndexError:
         break
     for i in range(env.game.game_len):
+
+
         a = dqn.choose_action(s)  # give deep q network state and return action
         ns, r, d, odds = env.step(a)  # next state, reward, done, odds
+
         if r > 0:
             num_profitable_steps += 1
         elif r < 0:

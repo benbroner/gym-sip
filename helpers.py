@@ -160,8 +160,6 @@ def net(bet, bet2):
         return bet.amt * _eq(bet.h_odds) - bet2.amt
 
 
-
-
 def bet_amt(money):
     # return 0.05 * money + 100  # 100 is arbitrary
     return 100
@@ -182,4 +180,3 @@ def net_given_odds(bet, cur_odds):
         return bet.amt * _eq(bet.a_odds) - bet2_amt
     else:
         return bet.amt * _eq(bet.h_odds) - bet2_amt
-
