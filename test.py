@@ -12,7 +12,7 @@ EPOCHS = 50000
 
 # main_init()
 env = gym.make('Sip-v0').unwrapped
-# env.reset()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 BATCH_SIZE = 64
 LR = 0.01                   # learning rate
@@ -112,18 +112,22 @@ reward_sum = 0
 reward_list = []
 
 dqn = DQN()
-num_games = 400
+try:
+    dqn.eval_net.load_state_dict(torch.load('models/eval.ckpt'))
+    dqn.target_net.load_state_dict(torch.load('models/target.ckpt'))
+except FileNotFoundError:
+    pass
+num_games = 1000
 
 x_axis = []
 y_axis = [] 
 homesales = [] 
 awaysales = [] 
 money_list = [] 
+place_in_game_axis = []
 
 num_profitable_steps = 0
 num_unprofitable_steps = 0
-
-print(len(env.game.game.columns))
 
 for game_num in range(num_games):  # run on set number of games
 
@@ -136,7 +140,8 @@ for game_num in range(num_games):  # run on set number of games
 
     cur_state, d = env.next()
 
-    for i in range(env.game.game_len):
+    i = 0
+    while True:
         a = dqn.choose_action(cur_state)  # give deep q network state and return action
         next_state, r, d, odds = env.step(a)  # next state, reward, done, odds
 
@@ -153,6 +158,8 @@ for game_num in range(num_games):  # run on set number of games
         print('env.money: {}'.format(env.money))
         print(odds)
         print('\n')
+
+        i += 1
 
         if dqn.memory_counter > MEMORY_CAPACITY:
             dqn.learn()
@@ -171,6 +178,7 @@ for game_num in range(num_games):  # run on set number of games
                 money_list.append(env.money)
 
                 x_axis.append(game_num + i/env.game.game_len)
+                place_in_game_axis.append(i)
                 reward_list.append(r)
 
                 if homesale_price > 1000: 
@@ -181,6 +189,9 @@ for game_num in range(num_games):  # run on set number of games
                     print(odds)
         else:
             break
+
+torch.save(dqn.eval_net.state_dict(), 'models/eval.ckpt')
+torch.save(dqn.target_net.state_dict(), 'models/target.ckpt')
 
 print(env.money)
 print(len(x_axis))
