@@ -22,6 +22,7 @@ class SippyState:
         self.id = self.ids()[0]
         self.index = 0
         self.cur_state = self.game.iloc[self.index]
+        self.teams = h.teams_given_state(self.cur_state)
         self.team_won = False
         print("imported {}".format(self.id))
 
@@ -39,16 +40,16 @@ class SippyState:
         return self.game.shape
 
     def a_odds(self):
-        return int(self.game.iloc[self.index, 12])
+        return int(self.game.iloc[self.index, 14])
         # return int(self.game_a_odds[self.index])
 
     def h_odds(self):
-        return int(self.game.iloc[self.index, 13])
+        return int(self.game.iloc[self.index, 15])
         # return int(self.game_h_odds[self.index])
 
     def game_over(self):
         csv_end = self.index > (self.game_len - 1)
-        self.team_won = self.cur_state[6] == 1 or self.cur_state[7] == 1
+        self.team_won = self.cur_state[7] == 1 or self.cur_state[8] == 1
         return csv_end or self.team_won
 
     def ids(self):
@@ -78,8 +79,8 @@ class SipEnv(gym.Env):
         self.follow_bets = 0
         self._odds()
         self.action_space = gym.spaces.Discrete(3)
-        self.observation_space = gym.spaces.Box(low=-100000000., high=100000000., shape=(self.game.shape()[1],),
-                                                dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=-1e7, high=1e7, shape=(len(self.cur_state), 0))
+                                                # ,dtype=np.float32)
 
     def step(self, action):  # action given to us from test.py
         self.action = action   
@@ -90,7 +91,7 @@ class SipEnv(gym.Env):
 
         if done is True: 
             if self.game.team_won is False or self.last_bet is None:
-                return None, 0, True, self.odds
+                return self.cur_state, 0, True, self.odds
             else:
                 self.cur_state, reward, done, _ = self.forgot_to_hedge()
                 return self.cur_state, reward, done, self.odds
@@ -100,7 +101,7 @@ class SipEnv(gym.Env):
 
         reward = self.act()  # MAIN ACTION CALL
         if reward == None:
-            return None, 0, True, self.odds
+            return self.cur_state, 0, True, self.odds
         # place_in_game = self.game.index / self.game.game_len
         # if reward > 0:
         #     reward = reward / place_in_game
@@ -177,19 +178,15 @@ class SipEnv(gym.Env):
                 self.init_h_bet.h_odds = self.odds[1]
                 self.init_a_bet.h_odds = self.odds[1]
 
-    # def get_teams_from_state(self):
-    #     print(self.cur_state[:16])
-    #     for val in self.cur_state[:16].values.ravel()
-
     def forgot_to_hedge(self):
         print('forgot to hedge')
         reward = -self.last_bet.amt
         self.last_bet.__repr__()
         print(self.last_bet.wait_amt)
-        return None, reward, True, self.odds
+        return self.cur_state, reward, True, self.odds
 
     def _odds(self):
-        self.odds = (self.cur_state[10], self.cur_state[11])
+        self.odds = (self.cur_state[12], self.cur_state[13])
 
     def get_state(self):
         return self.cur_state

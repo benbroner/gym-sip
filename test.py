@@ -30,13 +30,25 @@ class Net(nn.Module):
         super(Net, self).__init__()
         print('size')
         print(N_STATES) 
+
         self.fc1 = nn.Linear(N_STATES, 50)
-        self.fc1.weight.data.normal_(0, 0.1)   # initialization
-        self.out = nn.Linear(50, N_ACTIONS)
-        self.out.weight.data.normal_(0, 0.1)   # initialization
+        self.fc1.weight.data.normal_(0, 0.1)   
+        
+        self.fc2 = nn.Linear(50, 25)
+        self.fc2.weight.data.normal_(0, 0.1)
+        
+        self.fc3 = nn.Linear(25, 10)
+        self.fc3.weight.data.normal_(0, 0.1)   
+        
+        self.out = nn.Linear(10, N_ACTIONS)
+        self.out.weight.data.normal_(0, 0.1)   
 
     def forward(self, x):
         x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = F.relu(x)
+        x = self.fc3(x)
         x = F.relu(x)
         actions_value = self.out(x)
         return actions_value
@@ -48,12 +60,11 @@ class DQN(object):
 
         self.learn_step_counter = 0                                     # for target updating
         self.memory_counter = 0                                         # for storing memory
-        self.memory = np.zeros((MEMORY_CAPACITY, N_STATES + 4))     # initialize memory
+        self.memory = np.zeros((MEMORY_CAPACITY, N_STATES * 2 + 2))     # initialize memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
         self.loss_func = nn.MSELoss()
 
     def choose_action(self, x):
-        # print(x)
         x = torch.unsqueeze(torch.FloatTensor(x), 0)
         # input only one sample
         if np.random.uniform() < EPSILON:   # greedy
@@ -100,79 +111,71 @@ steps_done = 0
 reward_sum = 0
 reward_list = []
 
-
-
 # init
-prev_state = env.game.cur_state
-cur_state = env.game.cur_state
-s = (cur_state - prev_state)
+# prev_state = env.game.cur_state
+# cur_state = env.game.cur_state
+# s = (cur_state - prev_state)
 
 dqn = DQN()
-num_games = 20
+num_games = 400
 
 x_axis = []
 y_axis = [] 
-y2 = [] 
-y3 = [] 
-y4 = [] 
+homesales = [] 
+awaysales = [] 
+money_list = [] 
 
 num_profitable_steps = 0
 num_unprofitable_steps = 0
 
+print(len(env.game.game.columns))
+
 for game_num in range(num_games):  # run on set number of games
-    if game_num % 100 == 0:
+
+    if game_num % (num_games / 10) == 0:
         print("GAME: ", end='')
         print(game_num)
         print('num profit steps: {}'.format(num_profitable_steps))
         print('num unprofit steps: {}'.format(num_unprofitable_steps))
         print('\n')
-    try:
-        cur_state, d = env.next()
-        if d:
-            del env.games[env.games.id]
-            continue
-    except IndexError:
-        break
+
+    cur_state, d = env.next()
+
     for i in range(env.game.game_len):
+        a = dqn.choose_action(cur_state)  # give deep q network state and return action
+        next_state, r, d, odds = env.step(a)  # next state, reward, done, odds
 
-
-        a = dqn.choose_action(s)  # give deep q network state and return action
-        ns, r, d, odds = env.step(a)  # next state, reward, done, odds
+        dqn.store_transition(cur_state, a, r, next_state)
 
         if r > 0:
             num_profitable_steps += 1
         elif r < 0:
             num_unprofitable_steps += 1
+
         print('step: {}'.format(dqn.memory_counter))
-        print(env.game.id)
-        print('reward: ', end='')
-        print(r)
+        print('game_id: {}'.format(env.game.id))
+        print('reward: {}'.format(r))
         print(odds)
         print('\n')
 
-        dqn.store_transition(s, a, r, odds)
-
         if dqn.memory_counter > MEMORY_CAPACITY:
             dqn.learn()
+
         if not d:
-            prev_state = cur_state
-            cur_state = ns
-            s = cur_state - prev_state
             if env.init_a_bet.a_odds != 0 and env.init_a_bet.h_odds != 0:
+
                 awaysale_price = h.net_given_odds(env.init_a_bet, odds)
                 homesale_price = h.net_given_odds(env.init_h_bet, odds)
+
                 points_sum = env.cur_state[3] + env.cur_state[4]
                 x = game_num + i/env.game.game_len
-                y2.append(homesale_price)
-                y3.append(awaysale_price)
-                y4.append(env.money)
-                x_axis.append(game_num + i/env.game.game_len)
-                y_axis.append(r)
 
-                plt.scatter(x, homesale_price, c='blue', s=1, alpha=0.3)
-                plt.scatter(x, env.money, c='green', s=1, alpha=0.3)
-                plt.scatter(x, r, c='yellow', s=2.5, alpha=0.5)
-                plt.scatter(x, awaysale_price, c='red', s=2.5, alpha=0.5)
+                homesales.append(homesale_price)
+                awaysales.append(awaysale_price)
+                money_list.append(env.money)
+
+                x_axis.append(game_num + i/env.game.game_len)
+                reward_list.append(r)
 
                 if homesale_price > 1000: 
                     print("homesale_price high")
@@ -186,18 +189,20 @@ for game_num in range(num_games):  # run on set number of games
 print(env.money)
 print(len(x_axis))
 np_x_axis = np.array(x_axis)
-np_y_axis = np.array(y_axis)
+np_reward_list = np.array(reward_list)
 
-np_y2 = np.array(y2)
-np_y3 = np.array(y3)
-np_y4 = np.array(y4)
+np_homesales = np.array(homesales)
+np_awaysales = np.array(awaysales)
+np_money_list = np.array(money_list)
 
 # np_rl = np.array(reward_list)
 # np_rl = np_rl.astype(float)
 
-plt.scatter(np_x_axis, np_y2, c='blue', s=1, alpha=0.3)
-plt.scatter(np_x_axis, np_y3, c='green', s=1, alpha=0.3)
-plt.scatter(np_x_axis, np_y4, c='yellow', s=2.5, alpha=0.5)
-plt.scatter(np_x_axis, np_y_axis, c='red', s=2.5, alpha=0.5)
-plt.plot(np_x_axis, np_y_axis)
+plt.scatter(np_x_axis, np_homesales, c='blue', s=1, alpha=0.3)
+plt.scatter(np_x_axis, np_awaysales, c='green', s=1, alpha=0.3)
+plt.scatter(np_x_axis, np_money_list, c='yellow', s=2.5, alpha=0.5)
+plt.scatter(np_x_axis, np_reward_list, c='red', s=2.5, alpha=0.5)
+
+# plt.plot(np_x_axis, np_reward_list)
+
 plt.show()
