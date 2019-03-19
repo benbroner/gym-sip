@@ -28,8 +28,6 @@ ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_sp
 class Net(nn.Module):
     def __init__(self, ):
         super(Net, self).__init__()
-        print('size')
-        print(N_STATES) 
 
         self.fc1 = nn.Linear(N_STATES, 50)
         self.fc1.weight.data.normal_(0, 0.1)   
@@ -57,7 +55,6 @@ class Net(nn.Module):
 class DQN(object):
     def __init__(self):
         self.eval_net, self.target_net = Net(), Net()
-
         self.learn_step_counter = 0                                     # for target updating
         self.memory_counter = 0                                         # for storing memory
         self.memory = np.zeros((MEMORY_CAPACITY, N_STATES * 2 + 2))     # initialize memory
@@ -66,7 +63,6 @@ class DQN(object):
 
     def choose_action(self, x):
         x = torch.unsqueeze(torch.FloatTensor(x), 0)
-        # input only one sample
         if np.random.uniform() < EPSILON:   # greedy
             actions_value = self.eval_net.forward(x)
             action = torch.max(actions_value, 1)[1].data.numpy()
@@ -78,18 +74,15 @@ class DQN(object):
 
     def store_transition(self, s, a, r, s_):
         transition = np.hstack((s, [a, r], s_))
-        # replace the old memory with new memory
         index = self.memory_counter % MEMORY_CAPACITY
         self.memory[index, :] = transition
         self.memory_counter += 1
 
     def learn(self):
-        # target parameter update
         if self.learn_step_counter % TARGET_REPLACE_ITER == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
 
-        # sample batch transitions
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
         b_memory = self.memory[sample_index, :]
         b_s = torch.FloatTensor(b_memory[:, :N_STATES])
@@ -112,11 +105,13 @@ reward_sum = 0
 reward_list = []
 
 dqn = DQN()
+
 try:
     dqn.eval_net.load_state_dict(torch.load('models/eval.ckpt'))
     dqn.target_net.load_state_dict(torch.load('models/target.ckpt'))
 except FileNotFoundError:
     pass
+
 num_games = 1000
 
 x_axis = []

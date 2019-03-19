@@ -93,13 +93,14 @@ class SipEnv(gym.Env):
             if self.game.team_won is False or self.last_bet is None:
                 return self.cur_state, 0, True, self.odds
             else:
-                self.cur_state, reward, done, _ = self.forgot_to_hedge()
+                reward = self.forgot_to_hedge()
                 return self.cur_state, reward, done, self.odds
 
         if self.last_bet is not None:
             self.last_bet.wait_amt += 1
 
         reward = self.act()  # MAIN ACTION CALL
+
         if reward == None:
             return self.cur_state, 0, True, self.odds
         # place_in_game = self.game.index / self.game.game_len
@@ -183,7 +184,7 @@ class SipEnv(gym.Env):
         reward = -self.last_bet.amt
         self.last_bet.__repr__()
         print(self.last_bet.wait_amt)
-        return self.cur_state, reward, True, self.odds
+        return reward
 
     def _odds(self):
         self.odds = (self.cur_state[12], self.cur_state[13])
