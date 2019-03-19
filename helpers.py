@@ -24,18 +24,19 @@ class Df(Dataset):
 
 headers = ['a_team', 'h_team', 'sport', 'league', 
                 'game_id', 'cur_time',
-                'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start',
-                'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot']
+                'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start', 'last_mod_lines'
+
+                'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot', 'game_start_time']
 
 
 def get_games(fn='data/nba2.csv'):
     # takes in fn and returns python dict of pd dfs 
     raw = csv(fn)
     # raw = get_df(fn)
-    print(raw)
+    # print(raw)
     df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
     # df = dates(raw)
-    # df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
+    df = df.drop(['lms_date', 'lms_time'], axis=1)  # remove if dates() is called
     # df = df.astype(np.float32)
     games = chunk(df, 'game_id')
     return games
@@ -49,6 +50,21 @@ def remove_missed_wins(games):
     return games
 
 
+def drop_null_times(df, columns=['lms_date, lms_time']):
+    # given pandas df and list of strings for columns. convert '0' values to np.datetime64
+    init_len = len(df)
+    print('dropping null times from columns: {}'.format(columns))
+    print('df init length: {}'.format(init_len))
+    df[colums] = df[colums].replace('0', np.datetime64('NaT'))
+    df = df.dropna()
+
+    after_len = len(df)
+    delta = after - init_len
+
+    print('df after length: {}'.format(after_len))
+    print('delta (lines removed): {}'.format(delta))
+    return df
+
 def get_df(fn='/data/nba2.csv'):
     raw = csv(fn)
     df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
@@ -56,6 +72,18 @@ def get_df(fn='/data/nba2.csv'):
     df = df.astype(np.float32)
     return df
 
+def apply_min_game_len(games, min_lines=500):
+    # given dict of game dataframes and an integer > 0 for the minimum length of a game in csv lines 
+    print('applying minimum game len of : {}'.format(min_lines))
+    print('before apply: {}'.format(len(games)))
+    for key, value in games.copy().items():
+        l = len(value)
+        if l < min_lines:
+            print('deleted game_id: {}'.format(key))
+            print('had length: {}'.format(l))
+            del games[key]
+    print('after apply: {}'.format(len(games)))
+    return games
 
 def df_info(df):
     # TODO
@@ -80,7 +108,7 @@ def train_test(df, train_frac=0.6):
 def csv(fn):
     # takes in file name, returns pandas dataframe
     # fn is type string
-    df = pd.read_csv(fn, usecols=headers)
+    df = pd.read_csv(fn) # , usecols=headers)
     df.dropna()
     return df.copy()
 

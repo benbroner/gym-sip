@@ -76,7 +76,7 @@ class SipEnv(gym.Env):
         self.hedges = []
         self.game_hedges = 0
         self.follow_bets = 0
-        self.odds = ()  # storing current odds as 2-tuple
+        self._odds()
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low=-100000000., high=100000000., shape=(self.game.shape()[1],),
                                                 dtype=np.float32)
@@ -101,9 +101,9 @@ class SipEnv(gym.Env):
         reward = self.act()  # MAIN ACTION CALL
         if reward == None:
             return None, 0, True, self.odds
-        place_in_game = self.game.index / self.game.game_len
-        if reward > 0:
-            reward = reward / place_in_game
+        # place_in_game = self.game.index / self.game.game_len
+        # if reward > 0:
+        #     reward = reward / place_in_game
 
         return self.cur_state, reward, done, self.odds
 
