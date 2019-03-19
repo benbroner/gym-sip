@@ -248,7 +248,7 @@ class Hedge:
         print('hedged profit: ' + str(self.net))
         print('steps waited: ' + str(self.bet.wait_amt))
         if self.made_profit:
-            print('made money]')
+            print('$$$$$$$$$$$$$$$$$ made money]')
         print('\n')
 
     # TODO 

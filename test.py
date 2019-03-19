@@ -111,11 +111,6 @@ steps_done = 0
 reward_sum = 0
 reward_list = []
 
-# init
-# prev_state = env.game.cur_state
-# cur_state = env.game.cur_state
-# s = (cur_state - prev_state)
-
 dqn = DQN()
 num_games = 400
 
@@ -155,6 +150,7 @@ for game_num in range(num_games):  # run on set number of games
         print('step: {}'.format(dqn.memory_counter))
         print('game_id: {}'.format(env.game.id))
         print('reward: {}'.format(r))
+        print('env.money: {}'.format(env.money))
         print(odds)
         print('\n')
 
