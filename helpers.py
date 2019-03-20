@@ -1,7 +1,10 @@
 # helper functions for Sip OpenAI Gym environment
 import pandas as pd
 import numpy as np
+import torch
 from torch.utils.data import Dataset, DataLoader
+from sklearn.preprocessing import StandardScaler
+
 
 class Df(Dataset):
     def __init__(self, np_df, unscaled):
@@ -29,7 +32,7 @@ headers = ['a_team', 'h_team', 'sport', 'league',
                 'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot', 'game_start_time']
 
 
-def get_games(fn='data/nba2.csv'):
+def get_games(fn='./data/nba2.csv'):
     # takes in fn and returns python dict of pd dfs 
     df = get_df(fn)
     games = chunk(df, 'game_id')
@@ -37,22 +40,22 @@ def get_games(fn='data/nba2.csv'):
     return games
 
 
-def get_df(fn='/data/nba2.csv'):
+def get_df(fn='./data/nba2.csv'):
     raw = csv(fn)
     raw = drop_null_times(raw)
-    df = one_hots(raw, ['sport', 'league', 'a_team', 'h_team'])
-    df = df.drop(['lms_date', 'lms_time'], axis=1)
+    df = one_hots(raw, ['league', 'a_team', 'h_team'])
+    df = df.drop(['sport', 'lms_date', 'lms_time'], axis=1)
     return df
 
 
-def chunk(df, col):
+def chunk(df, col='game_id'):
     # returns a python dict of pandas dfs, splitting the df arg by unique col value
     # df type pd df, col type string
     games = {key: val for key, val in df.groupby(col)}
     return games
 
 
-def csv(fn):
+def csv(fn='./data/nba2.csv'):
     # takes in file name string, returns pandas dataframe
     df = pd.read_csv(fn)
     return df.copy()
@@ -60,7 +63,7 @@ def csv(fn):
 
 def one_hots(df, cols):
     # df is pandas df, cols is string list
-    one_hot_df = pd.get_dummies(data=df, columns=cols, sparse=True)
+    one_hot_df = pd.get_dummies(data=df, columns=cols, sparse=False)
     return one_hot_df
 
 
@@ -81,7 +84,7 @@ def drop_null_times(df, columns=['lms_date', 'lms_time']):
     
     for col in columns:
         df[col] = df[col].replace('0', np.nan)
-        # df[col] = pd.to_datetime(df[col])
+        # df[col] = pd.to_datetime(df[col])  # TODO
 
     df = df.dropna()
 
@@ -122,16 +125,49 @@ def label_split(df, col):
     return X, Y
 
 
-def train_test(df, train_frac=0.6):
-    # TODO
-    pass
+def train_test(df):
+    test = df.sample(frac=0.5, random_state=None)
+    train = df.drop(test.index)
+    return train.copy(), test.copy()
+
+
+def sk_scale(data):
+    vals = data.to_numpy()
+    scaler = StandardScaler()
+    scaled = scaler.fit_transform(vals)
+    return scaled
+
+
+def select_dtypes(df, dtypes=['number']):
+    return df.select_dtypes(include=dtypes)
 
 
 def teams_given_state(state):  
     # given np array, representing a state (csv_line). returns tuple of teams
-    
-
     return state
+
+
+def games_to_padded_tensors(games, length=1200):
+    # takes in games dict and returns dict of padded length tensors
+    copy = games.copy()
+
+    for game in copy:
+        print('[{}'.format(len(games[game])))
+        game_df = games[game]
+        game_np = game_df.values
+        games[game] = pad_tensor(game_np)
+        print('{}]'.format(len(games[game])))
+    return games
+
+def get_t_games():
+    games = get_games()
+    t_games = games_to_padded_tensors(games)
+    return t_games
+
+
+def pad_tensor(game, length=1200):
+    tensor = torch.from_numpy(game)
+    return torch.cat([tensor, tensor.new(length - tensor.size(0), * tensor.size()[1:]).zero_()])
 
 
 def dates(df):

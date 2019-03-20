@@ -112,7 +112,7 @@ try:
 except FileNotFoundError:
     pass
 
-num_games = 1000
+num_games = 50
 
 x_axis = []
 y_axis = [] 
