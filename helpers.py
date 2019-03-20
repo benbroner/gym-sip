@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import torch
+import random
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
 
@@ -116,6 +117,10 @@ def df_info(df):
     # num games, teams, etc 
     pass
 
+def random_game(games):
+    game_id, game = random.choice(list(games.items()))
+    print('game_id: {}'.format(game_id))
+    return game
 
 def label_split(df, col):
     # give column to be predicted given all others in csv
@@ -152,12 +157,12 @@ def games_to_padded_tensors(games, length=1200):
     copy = games.copy()
 
     for game in copy:
-        print('[{}'.format(len(games[game])))
         game_df = games[game]
         game_np = game_df.values
         games[game] = pad_tensor(game_np)
-        print('{}]'.format(len(games[game])))
+
     return games
+
 
 def get_t_games():
     games = get_games()
