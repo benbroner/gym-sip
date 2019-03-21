@@ -26,11 +26,39 @@ class Df(Dataset):
         return self.data_len
 
 
-headers = ['a_team', 'h_team', 'sport', 'league', 
-                'game_id', 'cur_time',
-                'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start', 'last_mod_lines'
+class DfGame(Dataset):
+    def __init__(self, games):
+        self.games_dict = games
+        self.games = list(self.games_dict.values())
+        self.ids = list(self.games_dict.keys())
+        self.game_id = self.ids[0]
+        self.game = self.games[0] 
+        self.data_len = len(self.games)  # not padding aware because shape is constant
+        self.game_len = len(self.games_dict[self.game_id])  # assuming all games same length
+        # print(self.data_len)
+        # print(self.game_len)
 
-                'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot', 'game_start_time']
+    def __getitem__(self, index):
+        self.game = self.games[index]
+        # print(self.game)
+        first_half, second_half = self.split_game_in_half(self.game)
+        return first_half, second_half  # train, prediction
+
+    def __len__(self):
+        return self.data_len
+
+    def split_game_in_half(self, game):
+        first_half = game[:self.game_len//2, ]
+        second_half = game[self.game_len//2:, ]
+        print(first_half)
+        print(second_half)
+
+        return first_half, second_half
+
+
+headers = ['a_team', 'h_team', 'sport', 'league', 'game_id', 'cur_time',
+           'a_pts', 'h_pts', 'secs', 'status', 'a_win', 'h_win', 'last_mod_to_start', 'last_mod_lines'
+           'num_markets', 'a_odds_ml', 'h_odds_ml', 'a_hcap_tot', 'h_hcap_tot', 'game_start_time']
 
 
 def get_games(fn='./data/nba2.csv'):
@@ -69,10 +97,24 @@ def one_hots(df, cols):
 
 
 def remove_missed_wins(games):
-    # takes in a dictionary of games 
-    for g_id in list(games.keys()):
-        if len(games[g_id]['a_win'].unique()) + len(games[g_id]['h_win'].unique()) != 3:
-            del games[g_id]
+    # takes in a dictionary or list of df games
+    games_len = len(games)
+    if isinstance(games, dict):
+        for g_id in list(games.keys()): 
+            if len(games[g_id]['a_win'].unique()) + len(games[g_id]['h_win'].unique()) != 3:
+                del games[g_id]
+
+    elif isinstance(games, list):
+        for elt in games:
+            if len(elt['a_win'].unique()) + len(elt['h_win'].unique()) != 3:
+                games.remove(elt)
+    else:
+        raise TypeError('games argument must be dict or list')
+
+    # if games_len != len(games):
+    #     print('before: {}'.format(games_len))
+    #     print('after: {}'.format(len(games)))
+
     return games
 
 
@@ -117,10 +159,12 @@ def df_info(df):
     # num games, teams, etc 
     pass
 
+
 def random_game(games):
     game_id, game = random.choice(list(games.items()))
     print('game_id: {}'.format(game_id))
     return game
+
 
 def label_split(df, col):
     # give column to be predicted given all others in csv
@@ -160,12 +204,12 @@ def games_to_padded_tensors(games, length=1200):
         game_df = games[game]
         game_np = game_df.values
         games[game] = pad_tensor(game_np)
-
     return games
 
 
-def get_t_games():
-    games = get_games()
+def get_t_games(df):
+    games = chunk(df)
+    games = remove_missed_wins(games)
     t_games = games_to_padded_tensors(games)
     return t_games
 

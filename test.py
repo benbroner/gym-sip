@@ -14,10 +14,10 @@ EPOCHS = 50000
 env = gym.make('Sip-v0').unwrapped
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-BATCH_SIZE = 64
+BATCH_SIZE = 200
 LR = 0.01                   # learning rate
 EPSILON = 0.9               # greedy policy
-GAMMA = 0.9                 # reward discount
+GAMMA = 0.99                 # reward discount
 TARGET_REPLACE_ITER = 100   # target update frequency
 MEMORY_CAPACITY = 2000
 
@@ -95,10 +95,13 @@ class DQN(object):
         q_next = self.target_net(b_s_).detach()     # detach from graph, don't backpropagate
         q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)   # shape (batch, 1)
         loss = self.loss_func(q_eval, q_target)
-
+        print('q_eval: {}'.format(q_eval))
+        print('q_next: {}'.format(q_next))
+        print('q_target: {}'.format(q_target))
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
 
 steps_done = 0
 reward_sum = 0
